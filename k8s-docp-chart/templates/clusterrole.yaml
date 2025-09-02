@@ -1,0 +1,197 @@
+# k8s-docp-chart/templates/clusterrole.yaml
+{{- if .Values.serviceAccount.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.serviceAccount.name }}-role # Nome do ClusterRole, associado ao SA
+  labels:
+    {{- include "k8s-docp.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: "pre-install,pre-upgrade"
+    helm.sh/hook-weight: "-1"
+    helm.sh/resource-policy: adopt
+    meta.helm.sh/release-name:  {{ .Release.Name }}
+    meta.helm.sh/release-namespace:  {{ .Values.namespace }}
+rules:
+  # Exemplo de permissões restritas (APENAS PARA DEMONSTRAÇÃO)
+  # Se o manager precisar criar/listar/atualizar Deployments e Services no seu namespace,
+  # seria algo como:
+  # - apiGroups: ["apps"]
+  #   resources: ["deployments"]
+  #   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # - apiGroups: [""] # Core API group
+  #   resources: ["services", "pods"]
+  #   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # ... e assim por diante para CADA recurso que o manager precisa interagir.
+
+  # SEU CLUSTERROLE EXTREMAMENTE PERMISSIVO (COPIADO DO SEU EXEMPLO)
+  # ATENÇÃO: ISSO É UM RISCO DE SEGURANÇA GIGANTESCO EM PRODUÇÃO!
+  - nonResourceURLs:
+      - /metrics
+      - /metrics/slis
+    verbs:
+      - get
+  - apiGroups: ["*"]
+    resources: ["*/scale"]
+    verbs: ["get", "update"]
+  - apiGroups: [""]
+    resources:
+      [
+        "serviceaccounts",
+        "deployments",
+        "secrets",
+        "configmaps",
+        "services",
+        "namespaces",
+        "componentstatuses",
+        "endpoints",
+        "events",
+        "limitranges",
+        "nodes",
+        "persistentvolumeclaims",
+        "persistentvolumes",
+        "pods",
+        "replicationcontrollers",
+        "resourcequotas",
+        "nodes/metrics",
+        "nodes/proxy",
+        "nodes/spec",
+        "nodes/stats",
+      ]
+    verbs: ["create", "get", "list", "update", "watch", "delete", "patch"]
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources:
+      ["mutatingwebhookconfigurations", "validatingwebhookconfigurations"]
+    verbs: ["*", "create","delete","get","list"]
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources:
+      ["mutatingwebhookconfigurations", "validatingwebhookconfigurations"]
+    resourceNames: ["datadog-webhook"]
+    verbs: ["create", "get", "list", "update", "watch", "delete"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["create","list", "watch"]
+  - apiGroups: ["autoscaling.k8s.io"]
+    resources: ["verticalpodautoscalers"]
+    verbs: ["create","get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["cronjobs", "jobs"]
+    verbs: ["get", "list", "watch","create","delete"]
+  - apiGroups: ["extensions"]
+    resources:
+      ["daemonsets", "deployments", "replicasets", "customresourcedefinitions"]
+    verbs: ["create","list", "watch"]
+  - apiGroups: ["external.metrics.k8s.io"]
+    resources: ["*","create"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["authentication.k8s.io"]
+    resources: ["tokenreviews"]
+    verbs: ["create", "get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["create", "get", "list", "watch", "delete", "patch", "update"]
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets", "poddisruptionbudgets"]
+    verbs: ["create", "get", "list", "watch", "delete", "update", "patch"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["create", "get", "list", "delete", "patch", "update", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["create","get", "list", "watch"]
+  - apiGroups: ["metrics.eks.amazonaws.com"]
+    resources: ["kcm/metrics", "ksh/metrics"]
+    verbs: ["create","get"]
+  - apiGroups: ["quota.openshift.io"]
+    resources: ["clusterresourcequotas"]
+    verbs: ["create","get", "list"]
+  - apiGroups: ["security.openshift.io"]
+    resources: ["securitycontextconstraints"]
+    resourceNames:
+      [
+        "datadog-agent-cluster-agent",
+        "hostnetwork",
+        "datadog-agent",
+        "hostaccess",
+        "privileged",
+        "restricted",
+      ]
+    verbs: ["use","create"]
+  - apiGroups: ["apps"]
+    resources:
+      [
+        "deployments",
+        "daemonsets",
+        "replicasets",
+        "replicationcontrollers",
+        "statefulsets",
+      ]
+    verbs: ["create", "get", "list", "watch", "delete", "update", "patch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses", "volumeattachments"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apiregistration.k8s.io"]
+    resources: ["apiservices"]
+    verbs: ["*", "list", "watch","create"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["create", "list", "get", "watch","patch","update", "delete"]
+  - apiGroups: ["datadoghq.com"]
+    resources:
+      [
+        "datadogagents",
+        "datadogagents/finalizers",
+        "datadogagents/status",
+        "datadoggenericresources",
+        "datadoggenericresources/finalizers",
+        "datadoggenericresources/status",
+        "datadogmetrics",
+        "datadogmetrics/status",
+        "datadogmonitors",
+        "datadogmonitors/finalizers",
+        "datadogmonitors/status",
+        "datadogpodautoscalers",
+        "datadogpodautoscalers/status",
+        "datadogslos",
+        "datadogslos/finalizers",
+        "datadogslos/status",
+        "extendeddaemonsetreplicasets",
+        "extendeddaemonsets",
+        "watermarkpodautoscalers",
+      ]
+    verbs: ["*", "create", "list", "get", "watch", "delete", "update"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources:
+      [
+        "roles",
+        "rolebindings",
+        "clusterroles",
+        "clusterrolebindings",
+        "customresourcedefinitions",
+      ]
+    verbs: ["create", "get", "list", "watch", "delete", "update", "patch","deletecollection"]
+  - apiGroups: ["roles.rbac.authorization.k8s.io"]
+    resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+    verbs: ["create", "get", "list", "watch", "delete", "update", "patch"]
+  - apiGroups: ["cilium.io"]
+    resources: ["ciliumnetworkpolicies"]
+    verbs: ["create", "get", "list", "watch", "delete", "update", "patch"]
+  - apiGroups: ["certificates.k8s.io"]
+    resources: ["certificatesigningrequests"]
+    verbs: ["create","get", "list", "watch"]
+
+  - apiGroups: ["cert-manager.io"]
+    resources: ["certificates","issuers"]
+    verbs: ["create","get", "list", "watch","update","patch","delete"]
+
+  - apiGroups: ["authorization.k8s.io"]
+    resources:
+      [
+        "clusterrolebindings",
+        "clusterroles",
+        "rolebindings",
+        "roles",
+        "subjectaccessreviews",
+      ]
+    verbs: ["create", "get", "list", "watch", "delete", "update", "patch"]
+{{- end }}

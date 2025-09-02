@@ -1,0 +1,65 @@
+# k8s-docp-chart/templates/webhook-deployment.yaml
+{{- if .Values.webhook.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "k8s-docp.fullname" . }}-webhook
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "k8s-docp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: webhook # Label específico do componente
+spec:
+  replicas: {{ .Values.agent.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "k8s-docp.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: webhook
+  template:
+    metadata:
+      labels:
+        {{- include "k8s-docp.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: webhook
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }} # Compartilha o ServiceAccount
+      containers:
+        - name: webhook
+          image: "{{ .Values.webhook.image.repository }}:{{ .Values.webhook.image.tag }}"
+          imagePullPolicy: {{ .Values.webhook.image.pullPolicy }}
+          {{- if .Values.webhook.service.enabled }}
+          ports:
+            - containerPort: {{ .Values.webhook.service.targetPort }}
+          volumeMounts:
+            - name: {{ .Values.webhook.volumeName }}
+              mountPath: /etc/webhook/tls
+          {{- end }}
+          resources:
+            limits:
+              cpu: {{ .Values.webhook.resources.limits.cpu }}
+              memory: {{ .Values.webhook.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.agent.resources.requests.cpu }}
+              memory: {{ .Values.agent.resources.requests.memory }}
+          env:
+            {{- range $key, $value := .Values.webhook.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.webhook.livenessProbe.path }}
+              port: {{ .Values.webhook.livenessProbe.port }}
+              scheme: {{ .Values.webhook.livenessProbe.scheme }}
+            initialDelaySeconds: {{ .Values.webhook.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.webhook.livenessProbe.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.webhook.readinessProbe.path }}
+              port: {{ .Values.webhook.readinessProbe.port }}
+              scheme: {{ .Values.webhook.readinessProbe.scheme }}
+            initialDelaySeconds: {{ .Values.webhook.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.webhook.readinessProbe.periodSeconds }}
+      volumes:
+        - name: {{ .Values.webhook.volumeName }}
+          secret:
+            secretName: {{ .Values.secret.name }}
+{{- end }}

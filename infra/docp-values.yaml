@@ -1,0 +1,10 @@
+docp:
+  name: docp-api-secret
+  cluster_name: ""
+  docp_site:
+    url: "https://msapi.sandbox.docphq.tech"
+  data:
+    DOCP_API_KEY: docp-api-client-here  
+    TAGS:
+      - app:dev
+      - service:hml

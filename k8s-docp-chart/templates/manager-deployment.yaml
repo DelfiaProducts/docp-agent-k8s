@@ -1,0 +1,84 @@
+# k8s-docp-chart/templates/manager-deployment.yaml
+{{ if .Values.manager.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "k8s-docp.fullname" . }}-manager
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "k8s-docp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: manager # Label específico do componente
+spec:
+  replicas: {{ .Values.manager.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "k8s-docp.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: manager
+  template:
+    metadata:
+      labels:
+        {{- include "k8s-docp.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: manager
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      containers:
+        - name: manager
+          image: "{{ .Values.manager.image.repository }}:{{ .Values.manager.image.tag }}"
+          imagePullPolicy: {{ .Values.manager.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.manager.service.targetPort }}
+          resources:
+            limits:
+              cpu: {{ .Values.manager.resources.limits.cpu }}
+              memory: {{ .Values.manager.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.manager.resources.requests.cpu }}
+              memory: {{ .Values.manager.resources.requests.memory }}
+          env:
+            {{- range $key, $value := .Values.manager.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            - name: SERVICE_AGENT_NAME
+              value: {{ include "k8s-docp.fullname" . }}-agent-svc
+            - name: MANAGER_DEPLOYMENT_NAME
+              value: {{ include "k8s-docp.fullname" . }}-manager
+            - name: AGENT_DEPLOYMENT_NAME
+              value: {{ include "k8s-docp.fullname" . }}-agent
+            - name: WEBHOOK_DEPLOYMENT_NAME
+              value: {{ include "k8s-docp.fullname" . }}-webhook
+            - name: MANAGER_IMAGE_NAME
+              value: {{ .Values.manager.image.repository }}
+            - name: AGENT_IMAGE_NAME
+              value: {{ .Values.agent.image.repository }}
+            - name: WEBHOOK_IMAGE_NAME
+              value: {{ .Values.webhook.image.repository }}
+            - name: DOCP_DOMAIN
+              value: {{ .Values.docp.docp_site.url }}
+            - name: CLUSTER_NAME
+              value: {{ .Values.docp.cluster_name }}
+            - name: RELEASE_NAME
+              value: {{ .Release.Name }}
+            - name: DOCP_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.docp.name }}
+                  key: DOCP_API_KEY
+            - name: TAGS
+              value: {{ default "" (.Values.docp.data.TAGS | join ",") | quote }}
+            - name: VERSION
+              value: {{ default "latest" (.Values.docp.version) }}
+
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.manager.livenessProbe.path }}
+              port: {{ .Values.manager.livenessProbe.port }}
+            initialDelaySeconds: {{ .Values.manager.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.manager.livenessProbe.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.manager.readinessProbe.path }}
+              port: {{ .Values.manager.readinessProbe.port }}
+            initialDelaySeconds: {{ .Values.manager.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.manager.readinessProbe.periodSeconds }}
+{{- end }}

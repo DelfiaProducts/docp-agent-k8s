@@ -1,0 +1,56 @@
+# k8s-docp-chart/templates/agent-deployment.yaml
+{{- if .Values.agent.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "k8s-docp.fullname" . }}-agent
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "k8s-docp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent # Label específico do componente
+spec:
+  replicas: {{ .Values.agent.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "k8s-docp.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: agent
+  template:
+    metadata:
+      labels:
+        {{- include "k8s-docp.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: agent
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }} # Compartilha o ServiceAccount
+      containers:
+        - name: agent
+          image: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag }}"
+          imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+          {{- if .Values.agent.service.enabled }}
+          ports:
+            - containerPort: {{ .Values.agent.service.targetPort }}
+          {{- end }}
+          resources:
+            limits:
+              cpu: {{ .Values.agent.resources.limits.cpu }}
+              memory: {{ .Values.agent.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.agent.resources.requests.cpu }}
+              memory: {{ .Values.agent.resources.requests.memory }}
+          env:
+            {{- range $key, $value := .Values.agent.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.agent.livenessProbe.path }}
+              port: {{ .Values.agent.livenessProbe.port }}
+            initialDelaySeconds: {{ .Values.agent.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.agent.livenessProbe.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.agent.readinessProbe.path }}
+              port: {{ .Values.agent.readinessProbe.port }}
+            initialDelaySeconds: {{ .Values.agent.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.agent.readinessProbe.periodSeconds }}
+{{- end }}

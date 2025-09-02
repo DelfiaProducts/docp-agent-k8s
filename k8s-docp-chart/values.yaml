@@ -1,0 +1,158 @@
+# my-k8s-app/values.yaml
+# Namespace onde a aplicação será implantada
+namespace: docp-agent
+
+# Configurações do ServiceAccount e RBAC (aplicam-se a ambos os componentes)
+serviceAccount:
+  name: k8s-docp-svc-ac
+  create: true # Se true, o ServiceAccount, ClusterRole e ClusterRoleBinding serão criados
+  # As permissões do ClusterRole abaixo são muito amplas.
+  # RECOMENDA-SE FORTEMENTE REVISÁ-LAS E REDUZIR AO MÍNIMO NECESSÁRIO EM AMBIENTES DE PRODUÇÃO.
+  # Preferencialmente, utilize Role/RoleBinding se as permissões forem restritas ao namespace.
+
+# --- Configurações para o Deployment 'k8s-manager' ---
+manager:
+  enabled: true # Define se o componente manager será implantado
+  replicaCount: 1
+  image:
+    repository: public.ecr.aws/g0j2v1z2/k8s-manager
+    tag: 0.1.1
+    pullPolicy: Always # Changed from Never for better practice. Use Never only for local dev.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: "50%"
+      maxUnavailable: 0
+  service:
+    enabled: true
+    type: ClusterIP
+    port: 80
+    targetPort: 8080
+  resources:
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+  env: # Variáveis de ambiente como um mapa para fácil iteração
+    PORT: "8080"
+    AGENT_PORT: "12012"
+    LOG_LEVEL: "debug"
+    MOCKABLE: "false"
+  livenessProbe:
+    path: /health
+    port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readinessProbe:
+    path: /health
+    port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+# --- Configurações para o Deployment 'k8s-agent' ---
+agent:
+  enabled: true # Define se o componente agent será implantado
+  replicaCount: 1
+  image:
+    repository: public.ecr.aws/g0j2v1z2/k8s-agent # Assumindo que você terá uma imagem para o agent
+    tag: 0.1.1
+    pullPolicy: Always
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: "50%"
+      maxUnavailable: 0
+  service:
+    enabled: true # Se o agent também expõe um serviço
+    type: ClusterIP
+    port: 12012 # Porta para o agent
+    targetPort: 12012 # Porta do container do agent
+  resources:
+    limits:
+      cpu: "100m"
+      memory: "128Mi"
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+  env:
+    LOG_LEVEL: "debug"
+  livenessProbe:
+    path: /health
+    port: 12012
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readinessProbe:
+    path: /health
+    port: 12012
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+# --- Configurações para o Deployment 'k8s-webhook' ---
+webhook:
+  enabled: true # Define se o componente webhook será implantado
+  name: webhook
+  replicaCount: 1
+  tlsSecretName: webhook-agent-tls
+  volumeName: webhook-agent-tls
+  image:
+    repository: public.ecr.aws/g0j2v1z2/k8s-webhook # Assumindo que você terá uma imagem para o webhook
+    tag: 0.1.1
+    pullPolicy: Always
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: "50%"
+      maxUnavailable: 0
+  service:
+    enabled: true # Se o webhook também expõe um serviço
+    type: ClusterIP
+    port: 8080 # Porta para o webhook
+    tlsPort: 443
+    targetPort: 8080 # Porta do container do webhook
+  resources:
+    limits:
+      cpu: "100m"
+      memory: "128Mi"
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+  env:
+    PORT: "8080"
+    LOG_LEVEL: "debug"
+  livenessProbe:
+    path: /health
+    port: 8080
+    scheme: HTTPS
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readinessProbe:
+    path: /health
+    port: 8080
+    scheme: HTTPS
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+# --- Configurações pra secret
+secret:
+  enabled: true
+  name: webhook-agent-tls
+
+# --- Configurações para o mutate webhook ---
+mutating:
+  enabled: true 
+  tlsSecretName: webhook-agent-tls
+  service:
+    enabled: true 
+    name: agent-mutate 
+
+# --- Configurações do certificado
+certificate:
+  enabled: true
+  name: webhook-agent-tls
+
+# --- Configurações do Issuer
+issuer:
+  enabled: true
+  name: webhook-selfsigned-issuer

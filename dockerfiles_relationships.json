@@ -1,0 +1,5 @@
+{
+    "Dockerfile.agent": "k8s/agent",
+    "Dockerfile.manager": "k8s/manager",
+    "Dockerfile.webhook": "k8s/webhook"
+}

@@ -1,0 +1,34 @@
+# k8s-docp-chart/templates/mutatingwebhookconfiguration.yaml
+{{- if and .Values.mutating.enabled .Values.mutating.service.enabled }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: {{ .Values.mutating.service.name }} 
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    cert-manager.io/inject-ca-from: "{{ .Values.namespace }}/{{ .Values.secret.name }}"
+    helm.sh/hook: "pre-install,pre-upgrade"
+    helm.sh/hook-weight: "-1"
+    helm.sh/resource-policy: adopt
+    meta.helm.sh/release-name:  {{ .Release.Name }}
+    meta.helm.sh/release-namespace:  {{ .Values.namespace }}
+    app.kubernetes.io/managed-by: "Helm"
+webhooks:
+  - name: "{{ .Values.webhook.name }}.{{ .Values.namespace }}.svc" 
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    clientConfig:
+      service:
+        name: {{ include "k8s-docp.fullname" . }}-webhook-svc
+        namespace: {{ .Values.namespace }} 
+        path: "/"
+      caBundle: ""
+    rules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+        scope: "*"
+    failurePolicy: Ignore
+{{- end }}

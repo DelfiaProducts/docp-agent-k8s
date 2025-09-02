@@ -1,0 +1,28 @@
+package internal
+
+const (
+	DOCP_DOMAIN                                = "https://msapi.docphq.tech"
+	DOCP_AGENT_PORT                            = "12012"
+	DOCP_NAMESPACE                             = "docp-agent"
+	DOCP_CONFIG_MAP_STATE_NAME                 = "docp-state-config-map"
+	DOCP_CONFIG_MAP_CONFIGURATIONS_NAME        = "docp-configurations-config-map"
+	DOCP_MUTATING_WEBHOOK_NAME                 = "agent-mutate"
+	DOCP_CLUSTER_ROLE_NAME                     = "k8s-docp-svc-ac-role"
+	DOCP_CLUSTER_ROLE_BINDING_NAME             = "k8s-docp-svc-ac-binding"
+	DOCP_DEPLOYMENT_MANAGER_NAME               = "k8s-manager"
+	DOCP_DEPLOYMENT_AGENT_NAME                 = "k8s-agent"
+	DOCP_DEPLOYMENT_WEBHOOK_NAME               = "k8s-webhook"
+	DOCP_DEPLOYMENT_UPDATER_NAME               = "k8s-updater"
+	CONTAINER_MANAGER_NAME                     = "manager"
+	CONTAINER_AGENT_NAME                       = "agent"
+	CONTAINER_WEBHOOK_NAME                     = "webhook"
+	SERVICE_ACCOUNT_NAME                       = "k8s-docp-svc-ac"
+	DOCP_REPOSITORY_IMAGE_NAME                 = "gadelhatom"
+	DOCP_HELM_REPOSITORY                       = "https://test-docp-k8s.s3.us-east-1.amazonaws.com"
+	DOCP_HELM_REPOSITORY_NAME                  = "docp"
+	DOCP_HELM_CHART_NAME                       = "k8s-docp"
+	DATADOG_HELM_REPOSITORY                    = "https://helm.datadoghq.com"
+	DATADOG_DEPLOYMENT_OPERATOR_NAME           = "datadog-operator"
+	DATADOG_DEPLOYMENT_CLUSTER_AGENT_NAME      = "datadog-cluster-agent"
+	DATADOG_DEPLOYMENT_CLUSTER_AGENT_HELM_NAME = "datadog-agent-cluster-agent"
+)

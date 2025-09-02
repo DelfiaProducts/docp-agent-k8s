@@ -1,0 +1,19 @@
+# k8s-docp-chart/templates/webhook-service.yaml
+{{- if and .Values.webhook.enabled .Values.webhook.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "k8s-docp.fullname" . }}-webhook-svc # Nome do serviço do webhook
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "k8s-docp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: webhook
+spec:
+  selector:
+    {{- include "k8s-docp.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: webhook
+  ports:
+    - port: {{ .Values.webhook.service.tlsPort }}
+      targetPort: {{ .Values.webhook.service.targetPort }}
+  type: {{ .Values.webhook.service.type }}
+{{- end }}

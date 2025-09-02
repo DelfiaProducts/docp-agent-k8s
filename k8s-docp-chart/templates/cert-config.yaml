@@ -1,0 +1,29 @@
+# k8s-docp-chart/templates/cert-config.yaml
+{{- if .Values.certificate.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.certificate.name }} 
+  namespace: {{ .Values.namespace }}
+spec:
+  secretName: {{ .Values.secret.name }} 
+  duration: 8760h # 1 year
+  renewBefore: 720h # 30 days
+  subject:
+    organizations:
+      - {{ .Values.namespace }}
+  commonName: "{{ .Values.webhook.name}}.{{ .Values.namespace }}.svc" 
+  isCA: false
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+    - server auth
+  dnsNames:
+    - "{{ include "k8s-docp.fullname" . }}-webhook-svc.{{ .Values.namespace }}.svc"
+    - "{{ include "k8s-docp.fullname" . }}-webhook-svc.{{ .Values.namespace }}.svc.cluster.local"
+  issuerRef:
+    name: {{ .Values.issuer.name }} 
+    kind: Issuer
+{{- end }}

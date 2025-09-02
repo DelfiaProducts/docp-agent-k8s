@@ -1,0 +1,23 @@
+# k8s-docp-chart/templates/clusterrolebinding.yaml
+{{- if .Values.serviceAccount.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.serviceAccount.name }}-binding # Nome do ClusterRoleBinding
+  labels:
+    {{- include "k8s-docp.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: "pre-install,pre-upgrade"
+    helm.sh/hook-weight: "-1"
+    helm.sh/resource-policy: adopt
+    meta.helm.sh/release-name:  {{ .Release.Name }}
+    meta.helm.sh/release-namespace:  {{ .Values.namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.serviceAccount.name }}-role # Referencia o ClusterRole acima
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.serviceAccount.name }}
+    namespace: {{ .Values.namespace }}
+{{- end }}

@@ -1,0 +1,19 @@
+# k8s-docp-chart/templates/manager-service.yaml
+{{- if and .Values.manager.enabled .Values.manager.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "k8s-docp.fullname" . }}-manager-svc # Nome do serviço do manager
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "k8s-docp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: manager
+spec:
+  selector:
+    {{- include "k8s-docp.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: manager
+  ports:
+    - port: {{ .Values.manager.service.port }}
+      targetPort: {{ .Values.manager.service.targetPort }}
+  type: {{ .Values.manager.service.type }}
+{{- end }}
