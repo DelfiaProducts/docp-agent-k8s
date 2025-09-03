@@ -112,7 +112,7 @@ jobs:
           echo "Verificando estrutura do tfstate..."
           jq '.outputs.bucket_ids' resources_publics.tfstate
           echo "Extraindo valor do docp-agent-k8s..."
-          docp_agent_k8s=$(jq -r '.outputs.bucket_ids.value."docp-agent-k8s"' resources_publics.tfstate)
+          docp_agent_k8s=$(jq -r '.outputs.public_bucket_ids.value."docp-agent-k8s"' resources_publics.tfstate)
           echo "Valor extraído: $docp_agent_k8s"
           echo "docp_agent_k8s=$docp_agent_k8s" >> $GITHUB_ENV
       
