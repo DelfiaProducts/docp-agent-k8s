@@ -1,1 +1,373 @@
+name: Public k8s agent
+
+on:
+  push:
+    tags:
+      - '*'
+
+env:
+  SERVICES_AWS_REGION: 'us-east-1'
+  DOCKERFILE_AGENT: 'Dockerfile.agent'
+  DOCKERFILE_MANAGER: 'Dockerfile.manager'
+  DOCKERFILE_UPDATER: 'Dockerfile.updater'
+  DOCKERFILE_WEBHOOK: 'Dockerfile.webhook'
+  PUBLIC_ECR_REPOSITORY: 'public.ecr.aws/y2o5s4q6'
+  REPO_K8S_AGENT: 'k8s-agent'
+  REPO_K8S_MANAGER: 'k8s-manager'
+  REPO_K8S_UPDATER: 'k8s-updater'
+  REPO_K8S_WEBHOOK: 'k8s-webhook'
+  K8S_DOCP_CHART: 'k8s-docp-chart/'
+
+jobs:
+  build-and-deploy:
+    runs-on: Default-Main-Runner
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Show received tag information
+        run: |
+          echo "=== TAG INFORMATION ==="
+          echo "Received tag: ${{ github.ref_name }}"
+          echo "Source repository: ${{ github.repository }}"
+
+      - name: Process and store tag
+        id: process_tag
+        run: |
+          TAG="${{ github.ref_name }}"
+          
+          echo "Processing tag: $TAG"
+          echo "original_tag=$TAG" >> $GITHUB_OUTPUT
+          echo "tag_valid=true" >> $GITHUB_OUTPUT
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.SERVICES_AWS_REGION }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login | Build | Push  - ECR Public K8S Agent
+        run: |
+          aws ecr-public get-login-password --region ${{ env.SERVICES_AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.PUBLIC_ECR_REPOSITORY }}
+          docker build -t ${{ env.REPO_K8S_AGENT }}:${{ github.ref_name }} -f ${{ env.DOCKERFILE_AGENT }} .
+          docker tag ${{ env.REPO_K8S_AGENT }}:${{ github.ref_name }} ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_AGENT }}:${{ github.ref_name }}
+          docker push ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_AGENT }}:${{ github.ref_name }}
+          
+          # Capturar URI completa da imagem do agent
+          AGENT_IMAGE_URI="${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_AGENT }}"
+          echo "agent_image_uri=$AGENT_IMAGE_URI" >> $GITHUB_ENV
+          echo "Agent image URI: $AGENT_IMAGE_URI"
+
+      - name: Login | Build | Push  - ECR Public K8S Manager
+        run: |
+          aws ecr-public get-login-password --region ${{ env.SERVICES_AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.PUBLIC_ECR_REPOSITORY }}
+          docker build -t ${{ env.REPO_K8S_MANAGER }}:${{ github.ref_name }} -f ${{ env.DOCKERFILE_MANAGER }} .
+          docker tag ${{ env.REPO_K8S_MANAGER }}:${{ github.ref_name }} ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_MANAGER }}:${{ github.ref_name }}
+          docker push ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_MANAGER }}:${{ github.ref_name }}
+          
+          # Capturar URI completa da imagem do manager
+          MANAGER_IMAGE_URI="${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_MANAGER }}"
+          echo "manager_image_uri=$MANAGER_IMAGE_URI" >> $GITHUB_ENV
+          echo "Manager image URI: $MANAGER_IMAGE_URI"
+      
+      - name: Login | Build | Push  - ECR Public K8S Updater
+        run: |
+          aws ecr-public get-login-password --region ${{ env.SERVICES_AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.PUBLIC_ECR_REPOSITORY }}
+          docker build -t ${{ env.REPO_K8S_UPDATER }}:${{ github.ref_name }} -f ${{ env.DOCKERFILE_UPDATER }} .
+          docker tag ${{ env.REPO_K8S_UPDATER }}:${{ github.ref_name }} ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_UPDATER }}:${{ github.ref_name }}
+          docker push ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_UPDATER }}:${{ github.ref_name }}
+          
+          # Capturar URI completa da imagem do updater
+          UPDATER_IMAGE_URI="${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_UPDATER }}"
+          echo "updater_image_uri=$UPDATER_IMAGE_URI" >> $GITHUB_ENV
+          echo "Updater image URI: $UPDATER_IMAGE_URI"
+      
+      - name: Login | Build | Push  - ECR Public K8S Webhook
+        run: |
+          aws ecr-public get-login-password --region ${{ env.SERVICES_AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.PUBLIC_ECR_REPOSITORY }}
+          docker build -t ${{ env.REPO_K8S_WEBHOOK }}:${{ github.ref_name }} -f ${{ env.DOCKERFILE_WEBHOOK }} .
+          docker tag ${{ env.REPO_K8S_WEBHOOK }}:${{ github.ref_name }} ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_WEBHOOK }}:${{ github.ref_name }}
+          docker push ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_WEBHOOK }}:${{ github.ref_name }}
+          
+          # Capturar URI completa da imagem do webhook
+          WEBHOOK_IMAGE_URI="${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_WEBHOOK }}"
+          echo "webhook_image_uri=$WEBHOOK_IMAGE_URI" >> $GITHUB_ENV
+          echo "Webhook image URI: $WEBHOOK_IMAGE_URI"
+      
+      - name: Download e Extrair Bucket S3 do tfstate
+        run: |
+          aws s3 cp s3://tfstate-delfia-labs-${{ env.env_name }}/env:/${{ env.env_name }}/resources/terraform.tfstate  resources.tfstate
+          echo "Verificando estrutura do tfstate..."
+          jq '.outputs.bucket_ids' resources.tfstate
+          echo "Extraindo valor do docp-agent-k8s..."
+          docp_agent_k8s=$(jq -r '.outputs.bucket_ids.value."docp-agent-k8s"' resources.tfstate)
+          echo "Valor extraído: $docp_agent_k8s"
+          echo "docp_agent_k8s=$docp_agent_k8s" >> $GITHUB_ENV
+      
+      - name: Se não existir index.yaml no bucket criar com helm chart
+        run: |
+          echo "Verificando se index.yaml existe no bucket ${{ env.docp_agent_k8s }}..."
+          if ! aws s3 ls s3://${{ env.docp_agent_k8s }}/index.yaml; then
+            echo "index.yaml não encontrado, criando com helm chart..."
+            helm repo index . --url https://${{ env.docp_agent_k8s }}.s3.us-east-1.amazonaws.com
+            echo "Fazendo upload do index.yaml para o bucket..."
+            aws s3 cp index.yaml s3://${{ env.docp_agent_k8s }}/
+          else
+            echo "index.yaml já existe no bucket"
+          fi
+        
+      - name: Atualizar version do Chart.yaml
+        run: |
+          echo "Atualizando version no Chart.yaml para ${{ github.ref_name }}..."
+          cd ${{ env.K8S_DOCP_CHART }}
+          
+          # Atualizar version no Chart.yaml
+          if [ -f "Chart.yaml" ]; then
+            sed -i "s/^version:.*/version: ${{ github.ref_name }}/" Chart.yaml
+            echo "Version atualizada no Chart.yaml:"
+            grep "^version:" Chart.yaml
+          else
+            echo "Chart.yaml não encontrado em ${{ env.K8S_DOCP_CHART }}"
+            exit 1
+          fi
+
+      - name: Atualizar tags e repositórios no values.yaml
+        run: |
+          echo "Atualizando tags e repositórios no values.yaml para ${{ github.ref_name }}..."
+          cd ${{ env.K8S_DOCP_CHART }}
+          
+          echo "=== URIs DAS IMAGENS CAPTURADAS ==="
+          echo "Agent URI: ${{ env.agent_image_uri }}"
+          echo "Manager URI: ${{ env.manager_image_uri }}"
+          echo "Updater URI: ${{ env.updater_image_uri }}"
+          echo "Webhook URI: ${{ env.webhook_image_uri }}"
+          
+          if [ -f "values.yaml" ]; then
+            # Backup do arquivo original
+            cp values.yaml values.yaml.backup
+            
+            # Criar script Python para atualizar o values.yaml de forma mais precisa
+            cat > update_values.py << 'EOF'
+          import yaml
+          import sys
+          
+          # Carregar o values.yaml
+          with open('values.yaml', 'r') as file:
+              data = yaml.safe_load(file)
+          
+          # URIs das imagens
+          agent_uri = "${{ env.agent_image_uri }}"
+          manager_uri = "${{ env.manager_image_uri }}"
+          updater_uri = "${{ env.updater_image_uri }}"
+          webhook_uri = "${{ env.webhook_image_uri }}"
+          release_tag = "${{ github.ref_name }}"
+          
+          print(f"Atualizando com a tag: {release_tag}")
+          print(f"Agent URI: {agent_uri}")
+          print(f"Manager URI: {manager_uri}")
+          print(f"Updater URI: {updater_uri}")
+          print(f"Webhook URI: {webhook_uri}")
+          
+          # Atualizar seção do agent
+          if 'agent' in data and 'image' in data['agent']:
+              print("Atualizando seção agent...")
+              data['agent']['image']['repository'] = agent_uri
+              data['agent']['image']['tag'] = release_tag
+              print(f"Agent: {agent_uri}:{release_tag}")
+          
+          # Atualizar seção do manager
+          if 'manager' in data and 'image' in data['manager']:
+              print("Atualizando seção manager...")
+              data['manager']['image']['repository'] = manager_uri
+              data['manager']['image']['tag'] = release_tag
+              print(f"Manager: {manager_uri}:{release_tag}")
+          
+          # Atualizar seção do webhook
+          if 'webhook' in data and 'image' in data['webhook']:
+              print("Atualizando seção webhook...")
+              data['webhook']['image']['repository'] = webhook_uri
+              data['webhook']['image']['tag'] = release_tag
+              print(f"Webhook: {webhook_uri}:{release_tag}")
+          
+          # Atualizar seção do updater (se existir)
+          if 'updater' in data and 'image' in data['updater']:
+              print("Atualizando seção updater...")
+              data['updater']['image']['repository'] = updater_uri
+              data['updater']['image']['tag'] = release_tag
+              print(f"Updater: {updater_uri}:{release_tag}")
+          
+          # Salvar o arquivo atualizado
+          with open('values.yaml', 'w') as file:
+              yaml.dump(data, file, default_flow_style=False, sort_keys=False)
+              
+          print("values.yaml atualizado com sucesso!")
+          EOF
+          
+            # Instalar PyYAML se não estiver disponível e executar o script
+            python3 -c "import yaml" 2>/dev/null || pip3 install PyYAML
+            python3 update_values.py
+            
+            # Fallback: usar sed se o Python falhar
+            if [ $? -ne 0 ]; then
+              echo "Python falhou, usando sed como fallback..."
+              
+              # Atualizar repositórios e tags por seção específica
+              echo "Atualizando agent..."
+              sed -i '/^agent:/,/^[a-zA-Z]/ { /repository:/ s|repository:.*|repository: ${{ env.agent_image_uri }}|; /tag:/ s|tag:.*|tag: ${{ github.ref_name }}|; }' values.yaml
+              
+              echo "Atualizando manager..."
+              sed -i '/^manager:/,/^[a-zA-Z]/ { /repository:/ s|repository:.*|repository: ${{ env.manager_image_uri }}|; /tag:/ s|tag:.*|tag: ${{ github.ref_name }}|; }' values.yaml
+              
+              echo "Atualizando webhook..."
+              sed -i '/^webhook:/,/^[a-zA-Z]/ { /repository:/ s|repository:.*|repository: ${{ env.webhook_image_uri }}|; /tag:/ s|tag:.*|tag: ${{ github.ref_name }}|; }' values.yaml
+              
+              echo "Atualizando updater (se existir)..."
+              sed -i '/^updater:/,/^[a-zA-Z]/ { /repository:/ s|repository:.*|repository: ${{ env.updater_image_uri }}|; /tag:/ s|tag:.*|tag: ${{ github.ref_name }}|; }' values.yaml
+            fi
+            
+            echo "=== MUDANÇAS REALIZADAS ==="
+            echo "Verificando seções atualizadas:"
+            echo "--- Agent ---"
+            sed -n '/^agent:/,/^[a-zA-Z]/p' values.yaml | grep -E "(repository:|tag:)" || echo "Seção agent não encontrada"
+            echo "--- Manager ---"
+            sed -n '/^manager:/,/^[a-zA-Z]/p' values.yaml | grep -E "(repository:|tag:)" || echo "Seção manager não encontrada"
+            echo "--- Webhook ---"
+            sed -n '/^webhook:/,/^[a-zA-Z]/p' values.yaml | grep -E "(repository:|tag:)" || echo "Seção webhook não encontrada"
+            echo "--- Updater ---"
+            sed -n '/^updater:/,/^[a-zA-Z]/p' values.yaml | grep -E "(repository:|tag:)" || echo "Seção updater não encontrada"
+            
+          else
+            echo "values.yaml não encontrado em ${{ env.K8S_DOCP_CHART }}"
+            exit 1
+          fi
+
+      - name: Validar mudanças nos arquivos
+        run: |
+          echo "=== VALIDANDO MUDANÇAS ==="
+          cd ${{ env.K8S_DOCP_CHART }}
+          
+          echo "Chart.yaml version:"
+          grep "^version:" Chart.yaml
+          
+          echo "=== VALORES ATUALIZADOS NO VALUES.YAML ==="
+          echo ""
+          echo "--- Seção Agent ---"
+          sed -n '/^agent:/,/^[a-zA-Z]/p' values.yaml | head -20
+          echo ""
+          echo "--- Seção Manager ---"
+          sed -n '/^manager:/,/^[a-zA-Z]/p' values.yaml | head -20
+          echo ""
+          echo "--- Seção Webhook ---"
+          sed -n '/^webhook:/,/^[a-zA-Z]/p' values.yaml | head -20
+          echo ""
+          echo "--- Seção Updater (se existir) ---"
+          sed -n '/^updater:/,/^[a-zA-Z]/p' values.yaml | head -20 || echo "Seção updater não encontrada"
+          
+          echo ""
+          echo "=== VERIFICANDO URIs DAS IMAGENS NAS SEÇÕES ==="
+          echo "Repositories encontrados:"
+          grep -n "repository:" values.yaml
+          echo "Tags encontradas:"
+          grep -n "tag:" values.yaml
+      
+      - name: Gerar package do Chart
+        run: |
+          echo "Gerando package do Chart..."
+          cd ${{ env.K8S_DOCP_CHART }}
+          helm package . 
+          echo "Package gerado:"
+          ls -l *.tgz
+          
+          echo "Atualizando index.yaml..."
+          helm repo index . --url https://${{ env.docp_agent_k8s }}.s3.us-east-1.amazonaws.com --merge index.yaml || echo "index.yaml não encontrado, criando novo"
+          
+          echo "Fazendo upload do package e index.yaml para o bucket..."
+          aws s3 cp *.tgz s3://${{ env.docp_agent_k8s }}/
+          aws s3 cp index.yaml s3://${{ env.docp_agent_k8s }}/
+          
+          echo "Upload concluído. Itens no bucket:"
+          aws s3 ls s3://${{ env.docp_agent_k8s }}/
+
+      - name: Gerar/Atualizar index.json com versões
+        run: |
+          echo "=== GERANDO/ATUALIZANDO INDEX.JSON ==="
+          RELEASE_TAG="${{ github.ref_name }}"
+          
+          # Tentar baixar index.json existente do bucket
+          if aws s3 cp s3://${{ env.docp_agent_k8s }}/index.json ./index.json 2>/dev/null; then
+            echo "index.json encontrado no bucket, fazendo backup e atualizando..."
+            cp index.json index.json.backup
+            
+            # Extrair versões existentes e adicionar a nova se não existir
+            EXISTING_VERSIONS=$(jq -r '.versions[]' index.json | sort -V)
+            echo "Versões existentes: $EXISTING_VERSIONS"
+            
+            # Criar array com todas as versões (existentes + nova se não existir)
+            ALL_VERSIONS=$(echo "$EXISTING_VERSIONS" | grep -v "^$RELEASE_TAG$" || true)
+            if [ -n "$ALL_VERSIONS" ]; then
+              ALL_VERSIONS="$ALL_VERSIONS"$'\n'"$RELEASE_TAG"
+            else
+              ALL_VERSIONS="$RELEASE_TAG"
+            fi
+            
+            # Ordenar versões
+            SORTED_VERSIONS=$(echo "$ALL_VERSIONS" | sort -V)
+            
+            # Criar novo index.json
+            echo "{" > index.json
+            echo "  \"latest\": \"$RELEASE_TAG\"," >> index.json
+            echo "  \"versions\": [" >> index.json
+            
+            # Adicionar versões ao array JSON
+            FIRST=true
+            for version in $SORTED_VERSIONS; do
+              if [ "$FIRST" = true ]; then
+                echo "    \"$version\"" >> index.json
+                FIRST=false
+              else
+                echo "    ,\"$version\"" >> index.json
+              fi
+            done
+            
+            echo "  ]" >> index.json
+            echo "}" >> index.json
+          else
+            echo "index.json não encontrado no bucket, criando novo..."
+            cat > index.json << EOF
+          {
+            "latest": "$RELEASE_TAG",
+            "versions": [
+              "$RELEASE_TAG"
+            ]
+          }
+          EOF
+          fi
+          
+          echo "=== CONTEÚDO DO INDEX.JSON ==="
+          cat index.json
+          
+          echo "=== VALIDANDO JSON ==="
+          if jq . index.json > /dev/null 2>&1; then
+            echo "JSON válido!"
+          else
+            echo "ERRO: JSON inválido!"
+            exit 1
+          fi
+          
+          echo "=== FAZENDO UPLOAD DO INDEX.JSON ==="
+          aws s3 cp index.json s3://${{ env.docp_agent_k8s }}/
+          
+          echo "Upload do index.json concluído!"
+          echo "Verificando arquivo no bucket:"
+          aws s3 ls s3://${{ env.docp_agent_k8s }}/index.json
 
