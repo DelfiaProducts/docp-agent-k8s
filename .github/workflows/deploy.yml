@@ -17,6 +17,8 @@ env:
   REPO_K8S_UPDATER: 'k8s-updater'
   REPO_K8S_WEBHOOK: 'k8s-webhook'
   K8S_DOCP_CHART: 'k8s-docp-chart/'
+  env_name: ${{ secrets.ENV_NAME }}
+  TFSTATE_S3_PATH: ${{ secrets.TFSTATE_S3_PATH }}
 
 jobs:
   build-and-deploy:
@@ -106,11 +108,11 @@ jobs:
       
       - name: Download e Extrair Bucket S3 do tfstate
         run: |
-          aws s3 cp s3://tfstate-delfia-labs-${{ env.env_name }}/env:/${{ env.env_name }}/resources/terraform.tfstate  resources.tfstate
+          aws s3 cp ${{ env.TFSTATE_S3_PATH }} resources_publics.tfstate
           echo "Verificando estrutura do tfstate..."
-          jq '.outputs.bucket_ids' resources.tfstate
+          jq '.outputs.bucket_ids' resources_publics.tfstate
           echo "Extraindo valor do docp-agent-k8s..."
-          docp_agent_k8s=$(jq -r '.outputs.bucket_ids.value."docp-agent-k8s"' resources.tfstate)
+          docp_agent_k8s=$(jq -r '.outputs.bucket_ids.value."docp-agent-k8s"' resources_publics.tfstate)
           echo "Valor extraído: $docp_agent_k8s"
           echo "docp_agent_k8s=$docp_agent_k8s" >> $GITHUB_ENV
       
