@@ -17,7 +17,6 @@ env:
   REPO_K8S_UPDATER: 'k8s-updater'
   REPO_K8S_WEBHOOK: 'k8s-webhook'
   K8S_DOCP_CHART: 'k8s-docp-chart/'
-  env_name: ${{ secrets.ENV_NAME }}
   TFSTATE_S3_PATH: ${{ secrets.TFSTATE_S3_PATH }}
 
 jobs:
