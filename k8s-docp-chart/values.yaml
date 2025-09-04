@@ -15,7 +15,7 @@ manager:
   enabled: true # Define se o componente manager será implantado
   replicaCount: 1
   image:
-    repository: public.ecr.aws/g0j2v1z2/k8s-manager
+    repository: public.ecr.aws/y2o5s4q6/k8s-manager
     tag: 0.1.1
     pullPolicy: Always # Changed from Never for better practice. Use Never only for local dev.
   strategy:
@@ -56,7 +56,7 @@ agent:
   enabled: true # Define se o componente agent será implantado
   replicaCount: 1
   image:
-    repository: public.ecr.aws/g0j2v1z2/k8s-agent # Assumindo que você terá uma imagem para o agent
+    repository: public.ecr.aws/y2o5s4q6/k8s-agent # Assumindo que você terá uma imagem para o agent
     tag: 0.1.1
     pullPolicy: Always
   strategy:
@@ -97,7 +97,7 @@ webhook:
   tlsSecretName: webhook-agent-tls
   volumeName: webhook-agent-tls
   image:
-    repository: public.ecr.aws/g0j2v1z2/k8s-webhook # Assumindo que você terá uma imagem para o webhook
+    repository: public.ecr.aws/y2o5s4q6/k8s-webhook # Assumindo que você terá uma imagem para o webhook
     tag: 0.1.1
     pullPolicy: Always
   strategy:
