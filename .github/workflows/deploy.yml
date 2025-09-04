@@ -116,16 +116,18 @@ jobs:
           echo "Valor extraído: $docp_agent_k8s"
           echo "docp_agent_k8s=$docp_agent_k8s" >> $GITHUB_ENV
       
-      - name: Se não existir index.yaml no bucket criar com helm chart
+      - name: Baixar index.yaml existente do bucket (se existir)
         run: |
-          echo "Verificando se index.yaml existe no bucket ${{ env.docp_agent_k8s }}..."
-          if ! aws s3 ls s3://${{ env.docp_agent_k8s }}/index.yaml; then
-            echo "index.yaml não encontrado, criando com helm chart..."
-            helm repo index . --url https://${{ env.docp_agent_k8s }}.s3.us-east-1.amazonaws.com
-            echo "Fazendo upload do index.yaml para o bucket..."
-            aws s3 cp index.yaml s3://${{ env.docp_agent_k8s }}/
+          echo "Tentando baixar index.yaml existente do bucket ${{ env.docp_agent_k8s }}..."
+          if aws s3 cp s3://${{ env.docp_agent_k8s }}/index.yaml ./index.yaml 2>/dev/null; then
+            echo "index.yaml encontrado e baixado com sucesso do bucket"
+            echo "Verificando conteúdo do index.yaml existente:"
+            ls -la index.yaml
+            echo "=== CONTEÚDO ATUAL DO INDEX.YAML ==="
+            cat index.yaml
           else
-            echo "index.yaml já existe no bucket"
+            echo "index.yaml não encontrado no bucket, será criado um novo"
+            echo "created_new_index=true" >> $GITHUB_ENV
           fi
         
       - name: Atualizar version do Chart.yaml
@@ -282,7 +284,7 @@ jobs:
           echo "Tags encontradas:"
           grep -n "tag:" values.yaml
       
-      - name: Gerar package do Chart
+      - name: Gerar package do Chart e atualizar index.yaml
         run: |
           echo "Gerando package do Chart..."
           cd ${{ env.K8S_DOCP_CHART }}
@@ -290,14 +292,31 @@ jobs:
           echo "Package gerado:"
           ls -l *.tgz
           
-          echo "Atualizando index.yaml..."
-          helm repo index . --url https://${{ env.docp_agent_k8s }}.s3.us-east-1.amazonaws.com --merge index.yaml || echo "index.yaml não encontrado, criando novo"
+          echo "=== ATUALIZANDO INDEX.YAML ==="
+          # Voltar para o diretório raiz onde pode ter o index.yaml baixado
+          cd ..
           
-          echo "Fazendo upload do package e index.yaml para o bucket..."
-          aws s3 cp *.tgz s3://${{ env.docp_agent_k8s }}/
-          aws s3 cp index.yaml s3://${{ env.docp_agent_k8s }}/
+          if [ -f "index.yaml" ]; then
+            echo "index.yaml existente encontrado, fazendo merge com nova versão..."
+            echo "=== CONTEÚDO ANTES DO MERGE ==="
+            cat index.yaml
+            echo ""
+            echo "Executando merge do index.yaml com nova versão..."
+            helm repo index ${{ env.K8S_DOCP_CHART }} --url https://${{ env.docp_agent_k8s }}.s3.us-east-1.amazonaws.com --merge index.yaml
+            echo "Merge concluído!"
+          else
+            echo "Criando novo index.yaml..."
+            helm repo index ${{ env.K8S_DOCP_CHART }} --url https://${{ env.docp_agent_k8s }}.s3.us-east-1.amazonaws.com
+          fi
           
-          echo "Upload concluído. Itens no bucket:"
+          echo "=== CONTEÚDO FINAL DO INDEX.YAML ==="
+          cat ${{ env.K8S_DOCP_CHART }}/index.yaml
+          
+          echo "Fazendo upload do package e index.yaml atualizado para o bucket..."
+          aws s3 cp ${{ env.K8S_DOCP_CHART }}/*.tgz s3://${{ env.docp_agent_k8s }}/
+          aws s3 cp ${{ env.K8S_DOCP_CHART }}/index.yaml s3://${{ env.docp_agent_k8s }}/
+          
+          echo "Upload concluído. Verificando itens no bucket:"
           aws s3 ls s3://${{ env.docp_agent_k8s }}/
 
       - name: Gerar/Atualizar index.json com versões
