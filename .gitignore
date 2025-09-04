@@ -21,5 +21,10 @@
 go.work
 go.work.sum
 
+infra/cluster_local/**
+
+#make files dev
+Makefile.dev
+
 # env file
 .env
