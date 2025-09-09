@@ -110,8 +110,8 @@ jobs:
           aws s3 cp ${{ env.TFSTATE_S3_PATH }} resources_publics.tfstate
           echo "Verificando estrutura do tfstate..."
           jq '.outputs.bucket_ids' resources_publics.tfstate
-          echo "Extraindo valor do docp-agent-k8s..."
-          docp_agent_k8s=$(jq -r '.outputs.public_bucket_ids.value."docp-agent-k8s"' resources_publics.tfstate)
+          echo "Extraindo valor do docp-agent..."
+          docp_agent_k8s=$(jq -r '.outputs.public_bucket_ids.value."docp-agent"' resources_publics.tfstate)
           echo "Valor extraído: $docp_agent_k8s"
           echo "docp_agent_k8s=$docp_agent_k8s" >> $GITHUB_ENV
       
@@ -318,18 +318,18 @@ jobs:
           echo "Upload concluído. Verificando itens no bucket:"
           aws s3 ls s3://${{ env.docp_agent_k8s }}/
 
-      - name: Gerar/Atualizar index.json com versões
+      - name: Gerar/Atualizar index_k8s.json com versões
         run: |
-          echo "=== GERANDO/ATUALIZANDO INDEX.JSON ==="
+          echo "=== GERANDO/ATUALIZANDO index_k8s.json ==="
           RELEASE_TAG="${{ github.ref_name }}"
           
-          # Tentar baixar index.json existente do bucket
-          if aws s3 cp s3://${{ env.docp_agent_k8s }}/index.json ./index.json 2>/dev/null; then
-            echo "index.json encontrado no bucket, fazendo backup e atualizando..."
-            cp index.json index.json.backup
+          # Tentar baixar index_k8s.json existente do bucket
+          if aws s3 cp s3://${{ env.docp_agent_k8s }}/index_k8s.json ./index_k8s.json 2>/dev/null; then
+            echo "index_k8s.json encontrado no bucket, fazendo backup e atualizando..."
+            cp index_k8s.json index_k8s.json.backup
             
             # Extrair versões existentes e adicionar a nova se não existir
-            EXISTING_VERSIONS=$(jq -r '.versions[]' index.json | sort -V)
+            EXISTING_VERSIONS=$(jq -r '.versions[]' index_k8s.json | sort -V)
             echo "Versões existentes: $EXISTING_VERSIONS"
             
             # Criar array com todas as versões (existentes + nova se não existir)
@@ -343,27 +343,27 @@ jobs:
             # Ordenar versões
             SORTED_VERSIONS=$(echo "$ALL_VERSIONS" | sort -V)
             
-            # Criar novo index.json
-            echo "{" > index.json
-            echo "  \"latest\": \"$RELEASE_TAG\"," >> index.json
-            echo "  \"versions\": [" >> index.json
+            # Criar novo index_k8s.json
+            echo "{" > index_k8s.json
+            echo "  \"latest\": \"$RELEASE_TAG\"," >> index_k8s.json
+            echo "  \"versions\": [" >> index_k8s.json
             
             # Adicionar versões ao array JSON
             FIRST=true
             for version in $SORTED_VERSIONS; do
               if [ "$FIRST" = true ]; then
-                echo "    \"$version\"" >> index.json
+                echo "    \"$version\"" >> index_k8s.json
                 FIRST=false
               else
-                echo "    ,\"$version\"" >> index.json
+                echo "    ,\"$version\"" >> index_k8s.json
               fi
             done
             
-            echo "  ]" >> index.json
-            echo "}" >> index.json
+            echo "  ]" >> index_k8s.json
+            echo "}" >> index_k8s.json
           else
-            echo "index.json não encontrado no bucket, criando novo..."
-            cat > index.json << EOF
+            echo "index_k8s.json não encontrado no bucket, criando novo..."
+            cat > index_k8s.json << EOF
           {
             "latest": "$RELEASE_TAG",
             "versions": [
@@ -373,21 +373,21 @@ jobs:
           EOF
           fi
           
-          echo "=== CONTEÚDO DO INDEX.JSON ==="
-          cat index.json
+          echo "=== CONTEÚDO DO index_k8s.json ==="
+          cat index_k8s.json
           
           echo "=== VALIDANDO JSON ==="
-          if jq . index.json > /dev/null 2>&1; then
+          if jq . index_k8s.json > /dev/null 2>&1; then
             echo "JSON válido!"
           else
             echo "ERRO: JSON inválido!"
             exit 1
           fi
           
-          echo "=== FAZENDO UPLOAD DO INDEX.JSON ==="
-          aws s3 cp index.json s3://${{ env.docp_agent_k8s }}/
+          echo "=== FAZENDO UPLOAD DO index_k8s.json ==="
+          aws s3 cp index_k8s.json s3://${{ env.docp_agent_k8s }}/
           
-          echo "Upload do index.json concluído!"
+          echo "Upload do index_k8s.json concluído!"
           echo "Verificando arquivo no bucket:"
-          aws s3 ls s3://${{ env.docp_agent_k8s }}/index.json
+          aws s3 ls s3://${{ env.docp_agent_k8s }}/index_k8s.json
 
