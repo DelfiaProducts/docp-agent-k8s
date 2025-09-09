@@ -111,14 +111,14 @@ jobs:
           echo "Verificando estrutura do tfstate..."
           jq '.outputs.bucket_ids' resources_publics.tfstate
           echo "Extraindo valor do docp-agent..."
-          docp_agent_k8s=$(jq -r '.outputs.public_bucket_ids.value."docp-agent"' resources_publics.tfstate)
-          echo "Valor extraído: $docp_agent_k8s"
-          echo "docp_agent_k8s=$docp_agent_k8s" >> $GITHUB_ENV
+          docp_agent=$(jq -r '.outputs.public_bucket_ids.value."docp-agent"' resources_publics.tfstate)
+          echo "Valor extraído: $docp_agent"
+          echo "docp_agent=$docp_agent" >> $GITHUB_ENV
       
       - name: Baixar index.yaml existente do bucket (se existir)
         run: |
-          echo "Tentando baixar index.yaml existente do bucket ${{ env.docp_agent_k8s }}..."
-          if aws s3 cp s3://${{ env.docp_agent_k8s }}/index.yaml ./index.yaml 2>/dev/null; then
+          echo "Tentando baixar index.yaml existente do bucket ${{ env.docp_agent }}..."
+          if aws s3 cp s3://${{ env.docp_agent }}/index.yaml ./index.yaml 2>/dev/null; then
             echo "index.yaml encontrado e baixado com sucesso do bucket"
             echo "Verificando conteúdo do index.yaml existente:"
             ls -la index.yaml
@@ -301,22 +301,22 @@ jobs:
             cat index.yaml
             echo ""
             echo "Executando merge do index.yaml com nova versão..."
-            helm repo index ${{ env.K8S_DOCP_CHART }} --url https://${{ env.docp_agent_k8s }}.s3.us-east-1.amazonaws.com --merge index.yaml
+            helm repo index ${{ env.K8S_DOCP_CHART }} --url https://${{ env.docp_agent }}.s3.us-east-1.amazonaws.com --merge index.yaml
             echo "Merge concluído!"
           else
             echo "Criando novo index.yaml..."
-            helm repo index ${{ env.K8S_DOCP_CHART }} --url https://${{ env.docp_agent_k8s }}.s3.us-east-1.amazonaws.com
+            helm repo index ${{ env.K8S_DOCP_CHART }} --url https://${{ env.docp_agent }}.s3.us-east-1.amazonaws.com
           fi
           
           echo "=== CONTEÚDO FINAL DO INDEX.YAML ==="
           cat ${{ env.K8S_DOCP_CHART }}/index.yaml
           
           echo "Fazendo upload do package e index.yaml atualizado para o bucket..."
-          aws s3 cp ${{ env.K8S_DOCP_CHART }}/*.tgz s3://${{ env.docp_agent_k8s }}/
-          aws s3 cp ${{ env.K8S_DOCP_CHART }}/index.yaml s3://${{ env.docp_agent_k8s }}/
+          aws s3 cp ${{ env.K8S_DOCP_CHART }}/*.tgz s3://${{ env.docp_agent }}/
+          aws s3 cp ${{ env.K8S_DOCP_CHART }}/index.yaml s3://${{ env.docp_agent }}/
           
           echo "Upload concluído. Verificando itens no bucket:"
-          aws s3 ls s3://${{ env.docp_agent_k8s }}/
+          aws s3 ls s3://${{ env.docp_agent }}/
 
       - name: Gerar/Atualizar index_k8s.json com versões
         run: |
@@ -324,7 +324,7 @@ jobs:
           RELEASE_TAG="${{ github.ref_name }}"
           
           # Tentar baixar index_k8s.json existente do bucket
-          if aws s3 cp s3://${{ env.docp_agent_k8s }}/index_k8s.json ./index_k8s.json 2>/dev/null; then
+          if aws s3 cp s3://${{ env.docp_agent }}/index_k8s.json ./index_k8s.json 2>/dev/null; then
             echo "index_k8s.json encontrado no bucket, fazendo backup e atualizando..."
             cp index_k8s.json index_k8s.json.backup
             
@@ -385,9 +385,9 @@ jobs:
           fi
           
           echo "=== FAZENDO UPLOAD DO index_k8s.json ==="
-          aws s3 cp index_k8s.json s3://${{ env.docp_agent_k8s }}/
+          aws s3 cp index_k8s.json s3://${{ env.docp_agent }}/
           
           echo "Upload do index_k8s.json concluído!"
           echo "Verificando arquivo no bucket:"
-          aws s3 ls s3://${{ env.docp_agent_k8s }}/index_k8s.json
+          aws s3 ls s3://${{ env.docp_agent }}/index_k8s.json
 
