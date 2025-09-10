@@ -1,0 +1,55 @@
+SOURCE-AVAILABLE LICENSE
+
+Copyright (c) 2025 DOCP. All rights reserved.
+
+GRANT OF RIGHTS:
+Subject to the terms and conditions of this license, DOCP grants you a limited, non-exclusive, non-transferable, revocable license to:
+
+1. VIEW the source code of this software for transparency, security review, and educational purposes
+2. SUBMIT contributions (including bug reports, feature requests, and code contributions) through the official project repositories
+
+RESTRICTIONS:
+You are expressly prohibited from:
+
+1. DISTRIBUTION: Distributing, sublicensing, selling, renting, leasing, or otherwise making this software available to third parties in any form
+2. COMMERCIAL USE: Using this software or any portion thereof for any commercial purpose, including but not limited to:
+   - Running this software in production environments
+   - Incorporating this software into commercial products or services
+   - Offering this software as a service (SaaS)
+   - Creating derivative products for sale or commercial distribution
+3. MODIFICATION FOR USE: Creating modified versions for your own use, deployment, or operation
+4. REVERSE ENGINEERING: Reverse engineering, decompiling, or disassembling the software for any purpose other than viewing
+5. CIRCUMVENTION: Removing, altering, or obscuring any licensing, copyright, or proprietary notices
+6. FORKING: Creating independent forks or branches outside of the official contribution process
+
+CONTRIBUTIONS:
+By submitting any contribution to this project, you agree that:
+- Your contribution becomes the exclusive property of DOCP
+- You grant DOCP unlimited rights to use, modify, and distribute your contribution
+- You have the right to make such contribution and it doesn't violate any third-party rights
+- You waive any moral rights or attribution rights to your contribution
+
+INTELLECTUAL PROPERTY:
+This software and all associated intellectual property, including but not limited to:
+- Source code, object code, and executable files
+- Documentation, comments, and specifications  
+- Algorithms, techniques, and business logic
+- Trade secrets and proprietary methodologies
+remain the exclusive property of DOCP.
+
+NO WARRANTY:
+THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+LIMITATION OF LIABILITY:
+IN NO EVENT SHALL DOCP BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+TERMINATION:
+This license is effective until terminated. DOCP may terminate this license at any time without notice. Upon termination, you must cease all use of the software and destroy all copies in your possession.
+
+GOVERNING LAW:
+This license shall be governed by and construed in accordance with the laws of Brazil, without regard to its conflict of law provisions.
+
+CONTACT:
+For licensing inquiries or permissions beyond this license, contact: ped.itmanagement@delfia.tech
+
+Last updated: 2025/09/10
