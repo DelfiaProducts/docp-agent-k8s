@@ -320,3 +320,25 @@ func TestValidateAndRollbackDatadogIfNeeded(t *testing.T) {
 		})
 	})
 }
+
+func TestGetHelmRepositoryName(t *testing.T) {
+	bdd.Feature(t, "Buscar nome do repositório Helm", func(t *testing.T, scenario func(description string, steps func(s *bdd.Scenario))) {
+		scenario("buscar nome do repositório Helm", func(s *bdd.Scenario) {
+			var logger *utils.K8sLogger
+			var helmClient *utils.HelmClient
+			var repoName string
+			var err error
+			s.Given("um HelmClient configurado", func() {
+				logger = utils.NewK8sLoggerText(os.Stdout)
+				helmClient = utils.NewHelmClient(logger)
+			})
+			s.When("eu busco o nome do repositório Helm", func() {
+				repoName, err = helmClient.GetHelmRepositoryName()
+			})
+			s.Then("deve retornar o nome do repositório Helm", func(t *testing.T) {
+				bdd.AssertNoError(t, err, "não deve retornar erro ao buscar nome do repositório Helm")
+			})
+			bdd.Printf("nome do repositório Helm: %s\n", repoName)
+		})
+	})
+}
