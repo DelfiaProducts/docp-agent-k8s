@@ -13,6 +13,7 @@ var (
 	ErrNotFoundChart          = errors.New("not found chart")
 	ErrNotFoundChartVersion   = errors.New("not found chart version")
 	ErrNotFoundReleaseName    = errors.New("not found release name")
+	ErrNotFoundRepositoryName = errors.New("not found repository name")
 
 	// transactions events
 	TransactionEventOpen   = "open"
