@@ -21,10 +21,9 @@ import (
 )
 
 type HelmClient struct {
-	Settings       *cli.EnvSettings
-	RepositoryName string
-	logger         *K8sLogger
-	kubeClient     *KubeClient
+	Settings   *cli.EnvSettings
+	logger     *K8sLogger
+	kubeClient *KubeClient
 }
 
 func NewHelmClient(logger *K8sLogger) *HelmClient {
@@ -43,11 +42,6 @@ func (hc *HelmClient) Setup() error {
 	if err := hc.kubeClient.LoadConfigKube(); err != nil {
 		return err
 	}
-	repoName, err := hc.GetHelmRepositoryName()
-	if err != nil {
-		return err
-	}
-	hc.RepositoryName = repoName
 	return nil
 }
 
@@ -500,7 +494,12 @@ func (hc *HelmClient) GetChartValuesByVersion(version string) (map[string]interf
 	if err != nil && os.IsNotExist(err) {
 		hc.logger.Error("failed to load helm repo file", "error", err.Error())
 	}
-	entry := repoFileObj.Get(hc.RepositoryName)
+	repoName, err := hc.GetHelmRepositoryName()
+	if err != nil {
+		hc.logger.Error("failed to get helm repository name", "error", err.Error())
+		return values, err
+	}
+	entry := repoFileObj.Get(repoName)
 	if entry != nil {
 		chartPathOptions := &action.ChartPathOptions{}
 		chartPath, err := chartPathOptions.LocateChart(fmt.Sprintf("%s/%s", entry.URL, chartName), hc.Settings)
@@ -800,6 +799,14 @@ func (hc *HelmClient) ValidateAndRollbackDatadogIfNeeded(mode, namespace, releas
 // GetHelmRepositoryName returns the name of the Helm repository
 func (hc *HelmClient) GetHelmRepositoryName() (string, error) {
 	pattern := GetHelmRepository()
+	helmDriver := os.Getenv("HELM_DRIVER")
+	hc.logger.Debug("helm driver", "helmDriver", helmDriver)
+
+	actionConfig := new(action.Configuration)
+	if err := actionConfig.Init(hc.Settings.RESTClientGetter(), hc.Settings.Namespace(), helmDriver, hc.logger.Debug); err != nil {
+		hc.logger.Error("failed to initialize helm action", "error", err.Error())
+		return "", err
+	}
 	repoFile := hc.Settings.RepositoryConfig
 	repoConfig, err := repo.LoadFile(repoFile)
 	if err != nil {
