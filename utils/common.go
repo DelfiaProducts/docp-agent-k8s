@@ -41,11 +41,6 @@ func GetHelmRepository() string {
 	return internal.DOCP_HELM_REPOSITORY
 }
 
-// GetHelmRepositoryName returns chart name the docp helm repository
-func GetHelmRepositoryName() string {
-	return internal.DOCP_HELM_REPOSITORY_NAME
-}
-
 // GetHelmChartName returns the chart name for the docp helm
 func GetHelmChartName() string {
 	return internal.DOCP_HELM_CHART_NAME
@@ -191,4 +186,9 @@ func ErrNotFoundChartVersion() error {
 // ErrNotFoundReleaseName return error the not found release name
 func ErrNotFoundReleaseName() error {
 	return internal.ErrNotFoundReleaseName
+}
+
+// ErrNotFoundRepositoryName return error the not found repository name
+func ErrNotFoundRepositoryName() error {
+	return internal.ErrNotFoundRepositoryName
 }
