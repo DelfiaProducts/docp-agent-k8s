@@ -19,7 +19,6 @@ const (
 	SERVICE_ACCOUNT_NAME                       = "k8s-docp-svc-ac"
 	DOCP_REPOSITORY_IMAGE_NAME                 = "public.ecr.aws/y2o5s4q6"
 	DOCP_HELM_REPOSITORY                       = "https://docp-agent.s3.us-east-1.amazonaws.com"
-	DOCP_HELM_REPOSITORY_NAME                  = "docp"
 	DOCP_HELM_CHART_NAME                       = "k8s-docp"
 	DATADOG_HELM_REPOSITORY                    = "https://helm.datadoghq.com"
 	DATADOG_DEPLOYMENT_OPERATOR_NAME           = "datadog-operator"
