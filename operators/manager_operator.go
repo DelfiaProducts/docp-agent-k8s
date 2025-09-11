@@ -232,7 +232,7 @@ func (m *ManagerOperator) GetLatestHelmChartVersion(namespace, releaseName strin
 // UpdateChartRepository update the helm repository
 func (m *ManagerOperator) UpdateChartRepository() error {
 	m.logger.Debug("update helm repository")
-	if err := m.helmClient.UpdateChartRepository(utils.GetHelmRepositoryName(), utils.GetHelmRepository()); err != nil {
+	if err := m.helmClient.UpdateChartRepository(m.helmClient.RepositoryName, utils.GetHelmRepository()); err != nil {
 		m.logger.Error("failed to update helm repository", "error", err.Error())
 		return err
 	}
