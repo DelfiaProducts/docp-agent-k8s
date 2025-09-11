@@ -21,9 +21,10 @@ import (
 )
 
 type HelmClient struct {
-	Settings   *cli.EnvSettings
-	logger     *K8sLogger
-	kubeClient *KubeClient
+	Settings       *cli.EnvSettings
+	RepositoryName string
+	logger         *K8sLogger
+	kubeClient     *KubeClient
 }
 
 func NewHelmClient(logger *K8sLogger) *HelmClient {
@@ -42,6 +43,11 @@ func (hc *HelmClient) Setup() error {
 	if err := hc.kubeClient.LoadConfigKube(); err != nil {
 		return err
 	}
+	repoName, err := hc.GetHelmRepositoryName()
+	if err != nil {
+		return err
+	}
+	hc.RepositoryName = repoName
 	return nil
 }
 
@@ -489,13 +495,12 @@ func (hc *HelmClient) GetChartValuesByVersion(version string) (map[string]interf
 	}
 
 	repoFile := hc.Settings.RepositoryConfig
-	repositoryName := GetHelmRepositoryName()
 
 	repoFileObj, err := repo.LoadFile(repoFile)
 	if err != nil && os.IsNotExist(err) {
 		hc.logger.Error("failed to load helm repo file", "error", err.Error())
 	}
-	entry := repoFileObj.Get(repositoryName)
+	entry := repoFileObj.Get(hc.RepositoryName)
 	if entry != nil {
 		chartPathOptions := &action.ChartPathOptions{}
 		chartPath, err := chartPathOptions.LocateChart(fmt.Sprintf("%s/%s", entry.URL, chartName), hc.Settings)
@@ -790,4 +795,25 @@ func (hc *HelmClient) ValidateAndRollbackDatadogIfNeeded(mode, namespace, releas
 	}
 
 	return nil
+}
+
+// GetHelmRepositoryName returns the name of the Helm repository
+func (hc *HelmClient) GetHelmRepositoryName() (string, error) {
+	pattern := GetHelmRepository()
+	repoFile := hc.Settings.RepositoryConfig
+	repoConfig, err := repo.LoadFile(repoFile)
+	if err != nil {
+		hc.logger.Error("failed to load helm repo file", "error", err.Error())
+		return "", err
+	}
+
+	for _, entry := range repoConfig.Repositories {
+		if strings.Contains(entry.URL, pattern) {
+			hc.logger.Debug("repository URL matches pattern", "name", entry.Name, "url", entry.URL, "pattern", pattern)
+			return entry.Name, nil
+		}
+	}
+
+	hc.logger.Debug("no repository URL matches pattern", "pattern", pattern)
+	return "", ErrNotFoundRepositoryName()
 }
