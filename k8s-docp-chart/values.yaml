@@ -16,7 +16,7 @@ manager:
   replicaCount: 1
   image:
     repository: public.ecr.aws/y2o5s4q6/k8s-manager
-    tag: 0.1.1
+    tag: 0.1.0
     pullPolicy: Always # Changed from Never for better practice. Use Never only for local dev.
   strategy:
     type: RollingUpdate
@@ -57,7 +57,7 @@ agent:
   replicaCount: 1
   image:
     repository: public.ecr.aws/y2o5s4q6/k8s-agent # Assumindo que você terá uma imagem para o agent
-    tag: 0.1.1
+    tag: 0.1.0
     pullPolicy: Always
   strategy:
     type: RollingUpdate
@@ -98,7 +98,7 @@ webhook:
   volumeName: webhook-agent-tls
   image:
     repository: public.ecr.aws/y2o5s4q6/k8s-webhook # Assumindo que você terá uma imagem para o webhook
-    tag: 0.1.1
+    tag: 0.1.0
     pullPolicy: Always
   strategy:
     type: RollingUpdate
