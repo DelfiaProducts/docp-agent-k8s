@@ -119,7 +119,7 @@ func (m *UpdaterOperator) UpgradeDocpWithRollbackProtection(namespace, releaseNa
 		"releaseName", releaseName)
 	upgradeVersion := targetVersion
 
-	if err := m.helmClient.UpdateChartRepository(utils.GetHelmRepositoryName(), repositoryURL); err != nil {
+	if err := m.helmClient.UpdateChartRepository(m.helmClient.RepositoryName, repositoryURL); err != nil {
 		m.logger.Error("failed to update chart repository", "error", err.Error())
 		return err
 	}
