@@ -52,19 +52,19 @@ func TestManagerOperatorAutoUninstall(t *testing.T) {
 				bdd.AssertNoError(t, err, "o erro deve ser nulo no setup")
 			})
 			s.When("execute auto uninstall", func() {
-				err = operator.AutoUninstall("docp-agent")
+				err = operator.AutoUninstall("orya-agent")
 			})
 			s.Then("o operator deve executar o auto uninstall sem erro", func(t *testing.T) {
 				bdd.AssertNoError(t, err, "o erro deve ser nulo")
 			})
 			s.When("execute remove config maps", func() {
-				err = operator.RemoveConfigMaps("docp-agent")
+				err = operator.RemoveConfigMaps("orya-agent")
 			})
 			s.Then("o operator deve executar o remove config maps sem erro", func(t *testing.T) {
 				bdd.AssertNoError(t, err, "o erro deve ser nulo")
 			})
 			s.When("execute remove config maps", func() {
-				err = operator.RemoveConfigMaps("docp-agent")
+				err = operator.RemoveConfigMaps("orya-agent")
 			})
 			s.When("eu instancio o operator", func() {
 				operator = operators.NewManagerOperator(logger)
@@ -77,7 +77,7 @@ func TestManagerOperatorAutoUninstall(t *testing.T) {
 				bdd.AssertNoError(t, err, "o erro deve ser nulo no setup")
 			})
 			s.When("execute update deployment image", func() {
-				err = operator.UpdateDeploymentImage("docp-agent", "k8s-manager", "manager", "k8s-manager:v1.1")
+				err = operator.UpdateDeploymentImage("orya-agent", "k8s-manager", "manager", "k8s-manager:v1.1")
 			})
 			s.Then("o operator deve executar o update deployment sem erro", func(t *testing.T) {
 				bdd.AssertNoError(t, err, "o erro deve ser nulo")
@@ -106,13 +106,13 @@ func TestManagerOperatorUpdateDeploymentImage(t *testing.T) {
 				bdd.AssertNoError(t, err, "o erro deve ser nulo no setup")
 			})
 			s.When("execute update deployment image", func() {
-				err = operator.UpdateDeploymentImage("docp-agent", "k8s-manager", "manager", "k8s-manager:v1.1")
+				err = operator.UpdateDeploymentImage("orya-agent", "k8s-manager", "manager", "k8s-manager:v1.1")
 			})
 			s.Then("o operator deve executar o update deployment sem erro", func(t *testing.T) {
 				bdd.AssertNoError(t, err, "o erro deve ser nulo")
 			})
 			s.When("execute remove config maps", func() {
-				err = operator.RemoveConfigMaps("docp-agent")
+				err = operator.RemoveConfigMaps("orya-agent")
 			})
 			s.Then("o operator deve executar o remove config maps sem erro", func(t *testing.T) {
 				bdd.AssertNoError(t, err, "o erro deve ser nulo")
@@ -192,7 +192,7 @@ func TestManagerOperatorVerifyDatadogResourceExists(t *testing.T) {
 				bdd.AssertNoError(t, err, "o erro deve ser nulo no setup")
 			})
 			s.When("execute verification the datadog resource exist", func() {
-				exists, err = operator.VerifyDatadogResourceExists("datadog", "docp-agent")
+				exists, err = operator.VerifyDatadogResourceExists("datadog", "orya-agent")
 			})
 			s.Then("o operator deve executar a verificação sem erro", func(t *testing.T) {
 				bdd.AssertNoError(t, err, "o erro deve ser nulo")
@@ -223,7 +223,7 @@ func TestManagerOperatorGetClusterRole(t *testing.T) {
 				bdd.AssertNoError(t, err, "o erro deve ser nulo no setup")
 			})
 			s.When("execute get cluster role", func() {
-				clusterRole, err = operator.GetClusterRole("docp-agent-datadog-orch-exp-dca")
+				clusterRole, err = operator.GetClusterRole("orya-agent-datadog-orch-exp-dca")
 			})
 			s.Then("o operator deve executar a verificação sem erro", func(t *testing.T) {
 				bdd.AssertNoError(t, err, "o erro deve ser nulo")
@@ -288,8 +288,8 @@ func TestManagerOperatorExecuteSignalUpdate(t *testing.T) {
 			})
 			s.When("eu crio um factory signal", func() {
 				factory = &dto.FactorySignalDTO{
-					Namespace:                  "docp-agent",
-					ConfigMapConfigurationName: utils.GetDocpConfigMapConfigurationsName(),
+					Namespace:                  "orya-agent",
+					ConfigMapConfigurationName: utils.GetOryaConfigMapConfigurationsName(),
 					Signal: &dto.K8sSignal{
 						TypeSignal: "update_agent",
 						Version:    "0.1.0",
@@ -328,8 +328,8 @@ func TestManagerOperatorExecuteSignalUninstall(t *testing.T) {
 			})
 			s.When("eu crio um factory signal", func() {
 				factory = &dto.FactorySignalDTO{
-					Namespace:                  "docp-agent",
-					ConfigMapConfigurationName: utils.GetDocpConfigMapConfigurationsName(),
+					Namespace:                  "orya-agent",
+					ConfigMapConfigurationName: utils.GetOryaConfigMapConfigurationsName(),
 					Signal: &dto.K8sSignal{
 						TypeSignal: "uninstall",
 						RemoveOtherVendors: []string{
@@ -376,12 +376,12 @@ func TestManagerOperatorNotifyStatus(t *testing.T) {
 			})
 			s.When("eu crio um factory signal", func() {
 				factory = &dto.FactorySignalDTO{
-					Namespace:                  "docp-agent",
-					ConfigMapConfigurationName: utils.GetDocpConfigMapConfigurationsName(),
+					Namespace:                  "orya-agent",
+					ConfigMapConfigurationName: utils.GetOryaConfigMapConfigurationsName(),
 				}
 			})
 			s.When("execute signal", func() {
-				err = operator.NotifyStatus("update_docp_test", "", "", ctx, factory)
+				err = operator.NotifyStatus("update_orya_test", "", "", ctx, factory)
 			})
 			s.Then("o erro da execução do signal precisa ser null", func(t *testing.T) {
 				bdd.AssertNoError(t, err, "o erro deve ser nulo")

@@ -2,7 +2,7 @@ apiVersion: apps/v1 # This should be apps/v1, not just v1
 kind: Deployment
 metadata:
   name: app1
-  namespace: docp-agent
+  namespace: orya-agent
 spec:
   replicas: 1
   selector:

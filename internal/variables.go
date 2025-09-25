@@ -6,7 +6,7 @@ var (
 	// errors
 	K8sOperatorNotImplemented = errors.New("k8s operator not implemented")
 	ConfigMapKeyNotFound      = errors.New("config map key not found")
-	DocpApiKeyNotFound        = errors.New("docp api key not found")
+	OryaApiKeyNotFound        = errors.New("orya api key not found")
 	ErrNotAuthorized          = errors.New("not authorized")
 	ErrAuthTokenClaimsInvalid = errors.New("invalid token claims")
 	ErrNotFound               = errors.New("not found")

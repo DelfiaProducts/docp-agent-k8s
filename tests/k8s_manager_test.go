@@ -30,8 +30,8 @@ func TestNewK8sManager(t *testing.T) {
 	})
 }
 
-func TestK8sManagerAutoUpdateDocp(t *testing.T) {
-	bdd.Feature(t, "Auto update docp", func(t *testing.T, scenario func(description string, steps func(s *bdd.Scenario))) {
+func TestK8sManagerAutoUpdateOrya(t *testing.T) {
+	bdd.Feature(t, "Auto update orya", func(t *testing.T, scenario func(description string, steps func(s *bdd.Scenario))) {
 		scenario("criar logger pra passar pro pkg manager", func(s *bdd.Scenario) {
 			var logger *utils.K8sLogger
 			var manager *pkg.K8sManager
@@ -49,11 +49,11 @@ func TestK8sManagerAutoUpdateDocp(t *testing.T) {
 				bdd.AssertNoError(t, err, "Espera-se que a inicialização do K8sManager não contenha erro")
 			})
 
-			s.When("eu auto atualizo o docp", func() {
-				err = manager.AutoUpdateDocp()
+			s.When("eu auto atualizo o orya", func() {
+				err = manager.AutoUpdateOrya()
 			})
 
-			s.Then("o auto update do docp não deve conter erro", func(t *testing.T) {
+			s.Then("o auto update do orya não deve conter erro", func(t *testing.T) {
 				bdd.AssertNoError(t, err, "Espera-se que o K8sManager não seja nulo")
 			})
 		})

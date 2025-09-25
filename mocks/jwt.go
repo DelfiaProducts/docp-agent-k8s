@@ -1,6 +1,5 @@
 package mocks
 
-
 import (
 	"encoding/base64"
 	"encoding/json"
@@ -16,20 +15,20 @@ type JWTHeader struct {
 
 // JWTPayload representa a estrutura do payload (claims) de um JWT
 type JWTPayload struct {
-	Sub   string   `json:"sub"`             
-	Email string   `json:"email,omitempty"` 
-	IAT   int64    `json:"iat"`             
-	EXP   int64    `json:"exp"`             
-	ISS   string   `json:"iss,omitempty"`   
-	AUD   string   `json:"aud,omitempty"`   
-	JTI   string   `json:"jti,omitempty"`   
+	Sub   string `json:"sub"`
+	Email string `json:"email,omitempty"`
+	IAT   int64  `json:"iat"`
+	EXP   int64  `json:"exp"`
+	ISS   string `json:"iss,omitempty"`
+	AUD   string `json:"aud,omitempty"`
+	JTI   string `json:"jti,omitempty"`
 }
 
 func GetMockJwt(email string) string {
 	// 1. Criar o cabeçalho do JWT
 	header := JWTHeader{
-		Alg: "HS256", 
-		Typ: "JWT",   
+		Alg: "HS256",
+		Typ: "JWT",
 	}
 
 	// Converter o cabeçalho para JSON
@@ -49,10 +48,10 @@ func GetMockJwt(email string) string {
 	payload := JWTPayload{
 		Sub:   "1234567890",
 		Email: email,
-		IAT:   now.Unix(),           
-		EXP:   expirationTime.Unix(), 
-		ISS:   "mock-auth-service.docp.com",
-		AUD:   "auth-api.docp.com",
+		IAT:   now.Unix(),
+		EXP:   expirationTime.Unix(),
+		ISS:   "mock-auth-service.orya.com",
+		AUD:   "auth-api.orya.com",
 		JTI:   "unique-mock-jti-123",
 	}
 
@@ -74,6 +73,6 @@ func GetMockJwt(email string) string {
 	// 4. Montar o JWT
 	mockJWT := fmt.Sprintf("%s.%s.%s", encodedHeader, encodedPayload, encodedSignature)
 
-	return mockJWT	
+	return mockJWT
 
 }

@@ -14,18 +14,18 @@ import (
 func TemplateJobAutoUninstall(namespace string) batchv1.Job {
 	backOffLimit := int32(5)
 	ttlPod := int32(300)
-	managerName := utils.GetDocpDeploymentName("manager")
-	agentName := utils.GetDocpDeploymentName("agent")
-	webhookName := utils.GetDocpDeploymentName("webhook")
+	managerName := utils.GetOryaDeploymentName("manager")
+	agentName := utils.GetOryaDeploymentName("agent")
+	webhookName := utils.GetOryaDeploymentName("webhook")
 	commandManager := fmt.Sprintf("kubectl delete deployment %s -n %s", managerName, namespace)
 	commandAgent := fmt.Sprintf("kubectl delete deployment %s -n %s", agentName, namespace)
 	commandWebhook := fmt.Sprintf("kubectl delete deployment %s -n %s", webhookName, namespace)
 	return batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "docp-auto-uninstall",
+			Name:      "orya-auto-uninstall",
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app": "docp-job-auto-uninstall",
+				"app": "orya-job-auto-uninstall",
 			},
 		},
 		Spec: batchv1.JobSpec{
@@ -34,7 +34,7 @@ func TemplateJobAutoUninstall(namespace string) batchv1.Job {
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": "docp-pod-auto-uninstall",
+						"app": "orya-pod-auto-uninstall",
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -88,16 +88,16 @@ func TemplateJobAutoUninstall(namespace string) batchv1.Job {
 func TemplateJobRemoveConfiMaps(namespace string) batchv1.Job {
 	backOffLimit := int32(5)
 	ttlPod := int32(300)
-	configMapStateName := utils.GetDocpConfiMapStateName()
-	configMapConfigurationName := utils.GetDocpConfigMapConfigurationsName()
+	configMapStateName := utils.GetOryaConfiMapStateName()
+	configMapConfigurationName := utils.GetOryaConfigMapConfigurationsName()
 	commandConfigMapState := fmt.Sprintf("kubectl delete configmap %s -n %s", configMapStateName, namespace)
 	commandConfigMapConfiguration := fmt.Sprintf("kubectl delete configmap %s -n %s", configMapConfigurationName, namespace)
 	return batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "docp-remove-config-maps",
+			Name:      "orya-remove-config-maps",
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app": "docp-job-remove-config-maps",
+				"app": "orya-job-remove-config-maps",
 			},
 		},
 		Spec: batchv1.JobSpec{
@@ -106,7 +106,7 @@ func TemplateJobRemoveConfiMaps(namespace string) batchv1.Job {
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": "docp-pod-config-maps",
+						"app": "orya-pod-config-maps",
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -141,17 +141,17 @@ func TemplateJobRemoveConfiMaps(namespace string) batchv1.Job {
 	}
 }
 
-// TemplateJobRemoveDocpNamespace return job the remove docp namespace
-func TemplateJobRemoveDocpNamespace(namespace string) batchv1.Job {
+// TemplateJobRemoveOryaNamespace return job the remove orya namespace
+func TemplateJobRemoveOryaNamespace(namespace string) batchv1.Job {
 	backOffLimit := int32(5)
 	ttlPod := int32(300)
 	command := fmt.Sprintf("kubectl delete ns %s", namespace)
 	return batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "docp-remove-docp-namespace",
+			Name:      "orya-remove-orya-namespace",
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app": "docp-job-remove-docp-namespace",
+				"app": "orya-job-remove-orya-namespace",
 			},
 		},
 		Spec: batchv1.JobSpec{
@@ -160,14 +160,14 @@ func TemplateJobRemoveDocpNamespace(namespace string) batchv1.Job {
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": "docp-pod-remove-docp-namespace",
+						"app": "orya-pod-remove-orya-namespace",
 					},
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: utils.GetServiceAccountName(),
 					Containers: []corev1.Container{
 						{
-							Name:  "job-remove-docp-namespace",
+							Name:  "job-remove-orya-namespace",
 							Image: "bitnami/kubectl:1.29.3",
 							Command: []string{
 								"/bin/sh",
@@ -185,17 +185,17 @@ func TemplateJobRemoveDocpNamespace(namespace string) batchv1.Job {
 	}
 }
 
-// TemplateJobRemoveMutatingWebhook return job the remove docp mutate webhook
+// TemplateJobRemoveMutatingWebhook return job the remove orya mutate webhook
 func TemplateJobRemoveMutatingWebhook(mutateName, namespace string) batchv1.Job {
 	backOffLimit := int32(5)
 	ttlPod := int32(300)
 	command := fmt.Sprintf("kubectl delete mutatingwebhookconfiguration %s -n %s", mutateName, namespace)
 	return batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "docp-remove-docp-mutate-agent",
+			Name:      "orya-remove-orya-mutate-agent",
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app": "docp-job-remove-docp-mutate-agent",
+				"app": "orya-job-remove-orya-mutate-agent",
 			},
 		},
 		Spec: batchv1.JobSpec{
@@ -204,14 +204,14 @@ func TemplateJobRemoveMutatingWebhook(mutateName, namespace string) batchv1.Job 
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": "docp-pod-remove-docp-mutate-agent",
+						"app": "orya-pod-remove-orya-mutate-agent",
 					},
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: utils.GetServiceAccountName(),
 					Containers: []corev1.Container{
 						{
-							Name:  "job-remove-docp-mutate-agent",
+							Name:  "job-remove-orya-mutate-agent",
 							Image: "bitnami/kubectl:1.29.3",
 							Command: []string{
 								"/bin/sh",
@@ -229,17 +229,17 @@ func TemplateJobRemoveMutatingWebhook(mutateName, namespace string) batchv1.Job 
 	}
 }
 
-// TemplateJobRemoveClusterRole return job the remove docp cluster role
+// TemplateJobRemoveClusterRole return job the remove orya cluster role
 func TemplateJobRemoveClusterRole(clusterRoleName, namespace string) batchv1.Job {
 	backOffLimit := int32(5)
 	ttlPod := int32(300)
 	command := fmt.Sprintf("kubectl delete clusterrole %s -n %s", clusterRoleName, namespace)
 	return batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "docp-remove-docp-cluster-role",
+			Name:      "orya-remove-orya-cluster-role",
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app": "docp-job-remove-docp-cluster-role",
+				"app": "orya-job-remove-orya-cluster-role",
 			},
 		},
 		Spec: batchv1.JobSpec{
@@ -248,14 +248,14 @@ func TemplateJobRemoveClusterRole(clusterRoleName, namespace string) batchv1.Job
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": "docp-pod-remove-docp-cluster-role",
+						"app": "orya-pod-remove-orya-cluster-role",
 					},
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: utils.GetServiceAccountName(),
 					Containers: []corev1.Container{
 						{
-							Name:  "job-remove-docp-cluster-role",
+							Name:  "job-remove-orya-cluster-role",
 							Image: "bitnami/kubectl:1.29.3",
 							Command: []string{
 								"/bin/sh",
@@ -273,17 +273,17 @@ func TemplateJobRemoveClusterRole(clusterRoleName, namespace string) batchv1.Job
 	}
 }
 
-// TemplateJobRemoveClusterRoleBinding return job the remove docp cluster role binding
+// TemplateJobRemoveClusterRoleBinding return job the remove orya cluster role binding
 func TemplateJobRemoveClusterRoleBinding(clusterRoleBindingName, namespace string) batchv1.Job {
 	backOffLimit := int32(5)
 	ttlPod := int32(300)
 	command := fmt.Sprintf("kubectl delete clusterrolebinding %s -n %s", clusterRoleBindingName, namespace)
 	return batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "docp-remove-docp-cluster-role-binding",
+			Name:      "orya-remove-orya-cluster-role-binding",
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app": "docp-job-remove-docp-cluster-role-binding",
+				"app": "orya-job-remove-orya-cluster-role-binding",
 			},
 		},
 		Spec: batchv1.JobSpec{
@@ -292,14 +292,14 @@ func TemplateJobRemoveClusterRoleBinding(clusterRoleBindingName, namespace strin
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": "docp-pod-remove-docp-cluster-role-binding",
+						"app": "orya-pod-remove-orya-cluster-role-binding",
 					},
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: utils.GetServiceAccountName(),
 					Containers: []corev1.Container{
 						{
-							Name:  "job-remove-docp-cluster-role-binding",
+							Name:  "job-remove-orya-cluster-role-binding",
 							Image: "bitnami/kubectl:1.29.3",
 							Command: []string{
 								"/bin/sh",
@@ -317,17 +317,17 @@ func TemplateJobRemoveClusterRoleBinding(clusterRoleBindingName, namespace strin
 	}
 }
 
-// TemplateJobRemoveDocpHelmRelease return job the remove docp helm release
-func TemplateJobRemoveDocpHelmRelease(releaseName, namespace string) batchv1.Job {
+// TemplateJobRemoveOryaHelmRelease return job the remove orya helm release
+func TemplateJobRemoveOryaHelmRelease(releaseName, namespace string) batchv1.Job {
 	backOffLimit := int32(5)
 	ttlPod := int32(300)
 	command := fmt.Sprintf("helm uninstall %s -n %s --wait --timeout=5m", releaseName, namespace)
 	return batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "docp-remove-docp-helm-release",
+			Name:      "orya-remove-orya-helm-release",
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app":     "docp-job-remove-docp-helm-release",
+				"app":     "orya-job-remove-orya-helm-release",
 				"release": releaseName,
 			},
 		},
@@ -337,14 +337,14 @@ func TemplateJobRemoveDocpHelmRelease(releaseName, namespace string) batchv1.Job
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": "docp-pod-remove-docp-helm-release",
+						"app": "orya-pod-remove-orya-helm-release",
 					},
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: utils.GetServiceAccountName(),
 					Containers: []corev1.Container{
 						{
-							Name:  "job-remove-docp-helm-release",
+							Name:  "job-remove-orya-helm-release",
 							Image: "alpine/helm:3.11.1",
 							Command: []string{
 								"/bin/sh",
@@ -375,10 +375,10 @@ func TemplateJobUpdateDeploymentImage(namespace, deploymentName, containerName, 
 	command := fmt.Sprintf("kubectl set image deployment/%s %s=%s -n %s", deploymentName, containerName, imageName, namespace)
 	return batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("docp-update-%s", deploymentName),
+			Name:      fmt.Sprintf("orya-update-%s", deploymentName),
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app": fmt.Sprintf("docp-job-update-%s", deploymentName),
+				"app": fmt.Sprintf("orya-job-update-%s", deploymentName),
 			},
 		},
 		Spec: batchv1.JobSpec{
@@ -387,7 +387,7 @@ func TemplateJobUpdateDeploymentImage(namespace, deploymentName, containerName, 
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": fmt.Sprintf("docp-pod-update-%s", deploymentName),
+						"app": fmt.Sprintf("orya-pod-update-%s", deploymentName),
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -416,7 +416,7 @@ func TemplateJobUpdateDeploymentImage(namespace, deploymentName, containerName, 
 func TemplateJobAutoUpdateHelmRelease(namespace, releaseName, repositoryURL, targetVersion, repositoryImage string) batchv1.Job {
 	backOffLimit := int32(5)
 	ttlPod := int32(300)
-	ulidName := fmt.Sprintf("docp-auto-update-helm-release-%s", strings.ToLower(utils.GetUlid()))
+	ulidName := fmt.Sprintf("orya-auto-update-helm-release-%s", strings.ToLower(utils.GetUlid()))
 	return batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ulidName,
@@ -471,15 +471,15 @@ func TemplateJobAutoUpdateHelmRelease(namespace, releaseName, repositoryURL, tar
 								},
 								{
 									Name:  "MANAGER_DEPLOYMENT_NAME",
-									Value: utils.GetDocpDeploymentName("manager"),
+									Value: utils.GetOryaDeploymentName("manager"),
 								},
 								{
 									Name:  "AGENT_DEPLOYMENT_NAME",
-									Value: utils.GetDocpDeploymentName("agent"),
+									Value: utils.GetOryaDeploymentName("agent"),
 								},
 								{
 									Name:  "WEBHOOK_DEPLOYMENT_NAME",
-									Value: utils.GetDocpDeploymentName("webhook"),
+									Value: utils.GetOryaDeploymentName("webhook"),
 								},
 								{
 									Name:  "HELM_DRIVER",
@@ -495,7 +495,7 @@ func TemplateJobAutoUpdateHelmRelease(namespace, releaseName, repositoryURL, tar
 	}
 }
 
-// TemplateJobRunUpdateAgent retorna um job que executa update do agente docp
+// TemplateJobRunUpdateAgent retorna um job que executa update do agente orya
 func TemplateJobRunUpdateAgent(namespace, jobName, imageName string, command []string, args []string, envVars []corev1.EnvVar) batchv1.Job {
 	backOffLimit := int32(5)
 	ttlPod := int32(300)
@@ -504,7 +504,7 @@ func TemplateJobRunUpdateAgent(namespace, jobName, imageName string, command []s
 			Name:      jobName,
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app": fmt.Sprintf("docp-job-%s", jobName),
+				"app": fmt.Sprintf("orya-job-%s", jobName),
 			},
 		},
 		Spec: batchv1.JobSpec{
@@ -513,7 +513,7 @@ func TemplateJobRunUpdateAgent(namespace, jobName, imageName string, command []s
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": fmt.Sprintf("docp-pod-%s", jobName),
+						"app": fmt.Sprintf("orya-pod-%s", jobName),
 					},
 				},
 				Spec: corev1.PodSpec{

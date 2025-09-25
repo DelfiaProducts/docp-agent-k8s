@@ -1,4 +1,4 @@
-# k8s-docp-chart/templates/cert-config.yaml
+# k8s-orya-chart/templates/cert-config.yaml
 {{- if .Values.certificate.enabled }}
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -21,8 +21,8 @@ spec:
   usages:
     - server auth
   dnsNames:
-    - "{{ include "k8s-docp.fullname" . }}-webhook-svc.{{ .Values.namespace }}.svc"
-    - "{{ include "k8s-docp.fullname" . }}-webhook-svc.{{ .Values.namespace }}.svc.cluster.local"
+    - "{{ include "k8s-orya.fullname" . }}-webhook-svc.{{ .Values.namespace }}.svc"
+    - "{{ include "k8s-orya.fullname" . }}-webhook-svc.{{ .Values.namespace }}.svc.cluster.local"
   issuerRef:
     name: {{ .Values.issuer.name }} 
     kind: Issuer

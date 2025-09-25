@@ -37,10 +37,10 @@ type AgentOperator struct {
 func NewAgentOperator(logger *utils.K8sLogger) *AgentOperator {
 	return &AgentOperator{
 		logger:                      logger,
-		namespace:                   utils.GetDocpNamespace(),
+		namespace:                   utils.GetOryaNamespace(),
 		kubeClient:                  utils.NewKubeClient(),
 		helmClient:                  utils.NewHelmClient(logger),
-		configMapConfigurationsName: utils.GetDocpConfigMapConfigurationsName(),
+		configMapConfigurationsName: utils.GetOryaConfigMapConfigurationsName(),
 	}
 }
 
@@ -99,7 +99,7 @@ func (a *AgentOperator) applyDatadogOperatorYml(datadogDto dto.DatadogDTO) error
 		}
 	}
 	_, err = clientset.Resource(gvr).Namespace(datadogDto.DatadogNamespace).Apply(context.Background(), datadogAgent.GetName(), &datadogAgent, metav1.ApplyOptions{
-		FieldManager: "docp-operator-datadog-install",
+		FieldManager: "orya-operator-datadog-install",
 		Force:        true,
 	})
 	if err != nil {

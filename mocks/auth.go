@@ -57,7 +57,7 @@ func (as *AuthService) Setup() error {
 		return err
 	}
 	as.urlAuth = urlDomain
-	as.configMapConfigurationsName = utils.GetDocpConfigMapConfigurationsName()
+	as.configMapConfigurationsName = utils.GetOryaConfigMapConfigurationsName()
 	client := &http.Client{
 		Timeout: time.Second * 90,
 	}

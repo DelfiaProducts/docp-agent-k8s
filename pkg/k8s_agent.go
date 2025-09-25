@@ -174,7 +174,7 @@ func (k *K8sAgent) Listen() error {
 }
 
 func (k *K8sAgent) Start() error {
-	k.logger.Info("Docp Agent Kubernetes Running", "port", k.port)
+	k.logger.Info("Orya Agent Kubernetes Running", "port", k.port)
 	if err := k.Initialize(); err != nil {
 		return err
 	}

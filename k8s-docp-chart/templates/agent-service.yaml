@@ -1,16 +1,16 @@
-# k8s-docp-chart/templates/agent-service.yaml
+# k8s-orya-chart/templates/agent-service.yaml
 {{- if and .Values.agent.enabled .Values.agent.service.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "k8s-docp.fullname" . }}-agent-svc # Nome do serviço do agent
+  name: {{ include "k8s-orya.fullname" . }}-agent-svc # Nome do serviço do agent
   namespace: {{ .Values.namespace }}
   labels:
-    {{- include "k8s-docp.labels" . | nindent 4 }}
+    {{- include "k8s-orya.labels" . | nindent 4 }}
     app.kubernetes.io/component: agent
 spec:
   selector:
-    {{- include "k8s-docp.selectorLabels" . | nindent 4 }}
+    {{- include "k8s-orya.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: agent
   ports:
     - port: {{ .Values.agent.service.port }}

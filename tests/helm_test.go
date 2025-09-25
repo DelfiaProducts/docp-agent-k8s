@@ -38,7 +38,7 @@ func TestUpdateChartRepository(t *testing.T) {
 				helmClient = utils.NewHelmClient(logger)
 			})
 			s.When("eu atualizo um repositório válido", func() {
-				err = helmClient.UpdateChartRepository("docp", utils.GetHelmRepository())
+				err = helmClient.UpdateChartRepository("orya", utils.GetHelmRepository())
 			})
 			s.Then("a atualização deve ser executada sem erro", func(t *testing.T) {
 				bdd.AssertNoError(t, err, "atualização do repositório deve ser executada sem erro")
@@ -59,7 +59,7 @@ func TestGetLatestHelmVersion(t *testing.T) {
 				helmClient = utils.NewHelmClient(logger)
 			})
 			s.When("eu busco a versão de um release inexistente", func() {
-				version, err = helmClient.GetLatestHelmVersion("docp-agent", "docp-agent")
+				version, err = helmClient.GetLatestHelmVersion("orya-agent", "orya-agent")
 			})
 			s.Then("a busca deve retornar erro", func(t *testing.T) {
 				bdd.AssertNoError(t, err, "deve retornar nulo pro erro")
@@ -83,7 +83,7 @@ func TestGetReleaseName(t *testing.T) {
 				bdd.AssertNoError(t, err, "deve configurar o cliente Helm corretamente")
 			})
 			s.When("eu busco o nome de um release inexistente", func() {
-				name, err = helmClient.GetReleaseName("docp-agent", "datadog-operator")
+				name, err = helmClient.GetReleaseName("orya-agent", "datadog-operator")
 			})
 			s.Then("a busca deve retornar erro", func(t *testing.T) {
 				bdd.AssertNoError(t, err, "deve retornar nulo pro erro")
@@ -107,7 +107,7 @@ func TestGetReleaseModeDatadog(t *testing.T) {
 				bdd.AssertNoError(t, err, "deve configurar o cliente Helm corretamente")
 			})
 			s.When("eu busco o mode de um release inexistente", func() {
-				mode, err = helmClient.GetReleaseModeDatadog("docp-agent")
+				mode, err = helmClient.GetReleaseModeDatadog("orya-agent")
 			})
 			s.Then("a busca deve retornar erro", func(t *testing.T) {
 				bdd.AssertNoError(t, err, "deve retornar nulo pro erro")
@@ -142,7 +142,7 @@ func TestLatestGetHelmChartVersion(t *testing.T) {
 	})
 }
 
-func TestUpgradeDocpHelmChart(t *testing.T) {
+func TestUpgradeOryaHelmChart(t *testing.T) {
 	bdd.Feature(t, "Executar upgrade do chart Helm do DOCP", func(t *testing.T, scenario func(description string, steps func(s *bdd.Scenario))) {
 		scenario("tentar upgrade com release existente", func(s *bdd.Scenario) {
 			var err error
@@ -154,7 +154,7 @@ func TestUpgradeDocpHelmChart(t *testing.T) {
 			})
 			s.When("eu tento fazer upgrade de release inexistente", func() {
 				values := make(map[string]interface{})
-				err = helmClient.UpgradeDocpHelmChart("docp-agent", "docp-agent", utils.GetHelmRepository(), "0.1.0", values)
+				err = helmClient.UpgradeOryaHelmChart("orya-agent", "orya-agent", utils.GetHelmRepository(), "0.1.0", values)
 			})
 			s.Then("o upgrade não deve retornar erro", func(t *testing.T) {
 				bdd.AssertNoError(t, err, "upgrade de release não deve retornar erro")
@@ -164,7 +164,7 @@ func TestUpgradeDocpHelmChart(t *testing.T) {
 	})
 }
 
-func TestUpgradeDocpToLatestVersion(t *testing.T) {
+func TestUpgradeOryaToLatestVersion(t *testing.T) {
 	bdd.Feature(t, "Executar upgrade do DOCP para versão mais atual", func(t *testing.T, scenario func(description string, steps func(s *bdd.Scenario))) {
 		scenario("tentar upgrade para versão mais atual com release inexistente", func(s *bdd.Scenario) {
 			var err error
@@ -176,7 +176,7 @@ func TestUpgradeDocpToLatestVersion(t *testing.T) {
 			})
 			s.When("eu tento fazer upgrade para versão mais atual com release existente", func() {
 				values := make(map[string]interface{})
-				err = helmClient.UpgradeDocpToLatestVersion("docp-agent", "docp-agent", utils.GetHelmRepository(), values)
+				err = helmClient.UpgradeOryaToLatestVersion("orya-agent", "orya-agent", utils.GetHelmRepository(), values)
 			})
 			s.Then("o upgrade deve retornar erro", func(t *testing.T) {
 				bdd.AssertNoError(t, err, "upgrade para versão mais atual com release existente não deve retornar erro")
@@ -185,7 +185,7 @@ func TestUpgradeDocpToLatestVersion(t *testing.T) {
 	})
 }
 
-func TestRollbackDocpHelmChart(t *testing.T) {
+func TestRollbackOryaHelmChart(t *testing.T) {
 	bdd.Feature(t, "Executar rollback do chart Helm do DOCP", func(t *testing.T, scenario func(description string, steps func(s *bdd.Scenario))) {
 		scenario("tentar rollback com release inexistente", func(s *bdd.Scenario) {
 			var err error
@@ -196,7 +196,7 @@ func TestRollbackDocpHelmChart(t *testing.T) {
 				helmClient = utils.NewHelmClient(logger)
 			})
 			s.When("eu tento fazer rollback de release inexistente", func() {
-				err = helmClient.RollbackDocpHelmChart("docp-agent", "docp-agent")
+				err = helmClient.RollbackOryaHelmChart("orya-agent", "orya-agent")
 			})
 			s.Then("o rollback deve retornar erro", func(t *testing.T) {
 				bdd.AssertErrorIsNil(t, err, "rollback de release inexistente deve retornar erro")
@@ -218,7 +218,7 @@ func TestGetCurrentRelease(t *testing.T) {
 				helmClient = utils.NewHelmClient(logger)
 			})
 			s.When("eu busco um release inexistente", func() {
-				release, err = helmClient.GetCurrentRelease("docp-agent", "docp-agent")
+				release, err = helmClient.GetCurrentRelease("orya-agent", "orya-agent")
 			})
 			s.Then("a busca deve retornar erro", func(t *testing.T) {
 				bdd.AssertErrorIsNil(t, err, "deve retornar erro para release inexistente")
@@ -241,7 +241,7 @@ func TestGetReleaseByVersion(t *testing.T) {
 			})
 
 			s.When("eu busco um release inexistente", func() {
-				release, err = helmClient.GetReleaseByVersion("docp-agent", "docp-agent", "0.1.0")
+				release, err = helmClient.GetReleaseByVersion("orya-agent", "orya-agent", "0.1.0")
 			})
 			s.Then("a busca deve retornar erro", func(t *testing.T) {
 				bdd.AssertNoError(t, err, "deve retornar erro para release inexistente")
@@ -286,7 +286,7 @@ func TestValidateAllDatadogDeploymentsSuccess(t *testing.T) {
 				helmClient = utils.NewHelmClient(logger)
 			})
 			s.When("eu valido todos os deployments do Datadog", func() {
-				success, err = helmClient.ValidateAllDatadogDeploymentsSuccess("operator", "docp-agent")
+				success, err = helmClient.ValidateAllDatadogDeploymentsSuccess("operator", "orya-agent")
 			})
 			s.Then("deve executar sem erro crítico", func(t *testing.T) {
 				if err != nil {
@@ -310,7 +310,7 @@ func TestValidateAndRollbackDatadogIfNeeded(t *testing.T) {
 				helmClient = utils.NewHelmClient(logger)
 			})
 			s.When("eu executo validação com rollback se necessário", func() {
-				err = helmClient.ValidateAndRollbackDatadogIfNeeded("operator", "docp-agent", "datadog-operator", 1)
+				err = helmClient.ValidateAndRollbackDatadogIfNeeded("operator", "orya-agent", "datadog-operator", 1)
 			})
 			s.Then("deve executar validação e tentar rollback se necessário", func(t *testing.T) {
 				if err != nil {

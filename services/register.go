@@ -35,7 +35,7 @@ func (rs *RegisterService) Setup() error {
 		return err
 	}
 	rs.urlRegister = urlDomain
-	rs.configMapConfigurationsName = utils.GetDocpConfigMapConfigurationsName()
+	rs.configMapConfigurationsName = utils.GetOryaConfigMapConfigurationsName()
 	client := &http.Client{
 		Timeout: time.Second * 90,
 	}
@@ -86,7 +86,7 @@ func (rs *RegisterService) RegisterCall(path string, registerDto dto.K8sRegister
 	}
 	req.Header.Set("Content-Type", "application/json")
 	if isCreate {
-		req.Header.Set("docp-api-key", apiKey)
+		req.Header.Set("orya-api-key", apiKey)
 	} else {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	}

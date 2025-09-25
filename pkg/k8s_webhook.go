@@ -31,9 +31,9 @@ func NewK8sWebhook(port string, logger *utils.K8sLogger) *K8sWebhook {
 	return &K8sWebhook{
 		port:                        port,
 		logger:                      logger,
-		configMapStateName:          utils.GetDocpConfiMapStateName(),
-		configMapConfigurationsName: utils.GetDocpConfigMapConfigurationsName(),
-		namespace:                   utils.GetDocpNamespace(),
+		configMapStateName:          utils.GetOryaConfiMapStateName(),
+		configMapConfigurationsName: utils.GetOryaConfigMapConfigurationsName(),
+		namespace:                   utils.GetOryaNamespace(),
 	}
 }
 
@@ -156,7 +156,7 @@ func (k *K8sWebhook) Listen() error {
 }
 
 func (k *K8sWebhook) Start() error {
-	k.logger.Info("Docp Webhook Kubernetes Running", "port", k.port)
+	k.logger.Info("Orya Webhook Kubernetes Running", "port", k.port)
 	if err := k.Initialize(); err != nil {
 		return err
 	}

@@ -82,7 +82,7 @@ func TestWebhookOperatorGetAdmissionReview(t *testing.T) {
 						Version:  "v1",
 						Resource: "pods",
 					},
-					Namespace: "docp-agent",
+					Namespace: "orya-agent",
 					Name:      "test-pod",
 					Object: runtime.RawExtension{
 						Raw: []byte(`{
@@ -90,7 +90,7 @@ func TestWebhookOperatorGetAdmissionReview(t *testing.T) {
 							"kind": "Pod",
 							"metadata": {
 								"name": "test-pod",
-								"namespace": "docp-agent",
+								"namespace": "orya-agent",
 								"labels": {
 									"app": "webhook"
 								}
@@ -164,8 +164,8 @@ func TestWebhookOperatorPopulateLabelsAndAnnotations(t *testing.T) {
 				err = operator.Setup()
 			})
 			s.Given("um WebhookOperator instanciado e um admission review válido", func() {
-				labels = dto.K8sConfigSignalLabels{Namespaces: []dto.K8sConfigSignalLabelsNamespace{{Name: "docp-agent", Add: []string{"app=$[labels.app]"}}}}
-				annotations = dto.K8sConfigSignalAnnotations{Namespaces: []dto.K8sConfigSignalAnnotationsNamespace{{Name: "docp-agent", Add: []string{"team=$[app.devops]"}}}}
+				labels = dto.K8sConfigSignalLabels{Namespaces: []dto.K8sConfigSignalLabelsNamespace{{Name: "orya-agent", Add: []string{"app=$[labels.app]"}}}}
+				annotations = dto.K8sConfigSignalAnnotations{Namespaces: []dto.K8sConfigSignalAnnotationsNamespace{{Name: "orya-agent", Add: []string{"team=$[app.devops]"}}}}
 				review = admissionv1.AdmissionReview{}
 				review.Kind = "AdmissionReview"
 				review.Request = &admissionv1.AdmissionRequest{
@@ -180,7 +180,7 @@ func TestWebhookOperatorPopulateLabelsAndAnnotations(t *testing.T) {
 						Version:  "v1",
 						Resource: "pods",
 					},
-					Namespace: "docp-agent",
+					Namespace: "orya-agent",
 					Name:      "test-pod",
 					Object: runtime.RawExtension{
 						Raw: []byte(`{
@@ -188,7 +188,7 @@ func TestWebhookOperatorPopulateLabelsAndAnnotations(t *testing.T) {
 							"kind": "Pod",
 							"metadata": {
 								"name": "test-pod",
-								"namespace": "docp-agent",
+								"namespace": "orya-agent",
 								"labels": {
 									"app": "webhook"
 								}
@@ -244,7 +244,7 @@ func TestWebhookOperatorApplyPatchForAdmissionReview(t *testing.T) {
 						Version:  "v1",
 						Resource: "pods",
 					},
-					Namespace: "docp-agent",
+					Namespace: "orya-agent",
 					Name:      "test-pod",
 					Object: runtime.RawExtension{
 						Raw: []byte(`{
@@ -252,7 +252,7 @@ func TestWebhookOperatorApplyPatchForAdmissionReview(t *testing.T) {
 							"kind": "Pod",
 							"metadata": {
 								"name": "test-pod",
-								"namespace": "docp-agent",
+								"namespace": "orya-agent",
 								"labels": {
 									"app": "webhook"
 								}

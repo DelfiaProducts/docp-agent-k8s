@@ -57,7 +57,7 @@ func (rs *RegisterService) Setup() error {
 		return err
 	}
 	rs.urlRegister = urlDomain
-	rs.configMapConfigurationsName = utils.GetDocpConfigMapConfigurationsName()
+	rs.configMapConfigurationsName = utils.GetOryaConfigMapConfigurationsName()
 	client := &http.Client{
 		Timeout: time.Second * 90,
 	}

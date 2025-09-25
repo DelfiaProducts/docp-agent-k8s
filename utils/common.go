@@ -9,11 +9,11 @@ import (
 
 // GetDomainUrl return domain url
 func GetDomainUrl() (string, error) {
-	docpDomain := os.Getenv("DOCP_DOMAIN")
-	if len(docpDomain) != 0 {
-		return docpDomain, nil
+	oryaDomain := os.Getenv("ORYA_DOMAIN")
+	if len(oryaDomain) != 0 {
+		return oryaDomain, nil
 	}
-	return internal.DOCP_DOMAIN, nil
+	return internal.ORYA_DOMAIN, nil
 }
 
 // GetDatadogHelmRepository returns the Datadog Helm repository URL
@@ -38,47 +38,47 @@ func GetDatadogDeploymentClusterAgentHelmName() string {
 
 // GetHelmRepository returns the Helm repository URL
 func GetHelmRepository() string {
-	return internal.DOCP_HELM_REPOSITORY
+	return internal.ORYA_HELM_REPOSITORY
 }
 
-// GetHelmRepositoryName returns chart name the docp helm repository
+// GetHelmRepositoryName returns chart name the orya helm repository
 func GetHelmRepositoryName() string {
-	return internal.DOCP_HELM_REPOSITORY_NAME
+	return internal.ORYA_HELM_REPOSITORY_NAME
 }
 
-// GetHelmChartName returns the chart name for the docp helm
+// GetHelmChartName returns the chart name for the orya helm
 func GetHelmChartName() string {
-	return internal.DOCP_HELM_CHART_NAME
+	return internal.ORYA_HELM_CHART_NAME
 }
 
-// GetDocpNamespace return docp namespace
-func GetDocpNamespace() string {
-	return internal.DOCP_NAMESPACE
+// GetOryaNamespace return orya namespace
+func GetOryaNamespace() string {
+	return internal.ORYA_NAMESPACE
 }
 
-// GetMutatingWebhookName return docp mutating webhook name
+// GetMutatingWebhookName return orya mutating webhook name
 func GetMutatingWebhookName() string {
-	return internal.DOCP_MUTATING_WEBHOOK_NAME
+	return internal.ORYA_MUTATING_WEBHOOK_NAME
 }
 
-// GetClusterRoleName return docp cluster role name
+// GetClusterRoleName return orya cluster role name
 func GetClusterRoleName() string {
-	return internal.DOCP_CLUSTER_ROLE_NAME
+	return internal.ORYA_CLUSTER_ROLE_NAME
 }
 
-// GetClusterRoleBindingName return docp cluster role binding name
+// GetClusterRoleBindingName return orya cluster role binding name
 func GetClusterRoleBindingName() string {
-	return internal.DOCP_CLUSTER_ROLE_BINDING_NAME
+	return internal.ORYA_CLUSTER_ROLE_BINDING_NAME
 }
 
-// GetDocpConfiMapStateName return docp config map state name
-func GetDocpConfiMapStateName() string {
-	return internal.DOCP_CONFIG_MAP_STATE_NAME
+// GetOryaConfiMapStateName return orya config map state name
+func GetOryaConfiMapStateName() string {
+	return internal.ORYA_CONFIG_MAP_STATE_NAME
 }
 
-// GetDocpConfigMapConfigurationsName return docp config map configurations name
-func GetDocpConfigMapConfigurationsName() string {
-	return internal.DOCP_CONFIG_MAP_CONFIGURATIONS_NAME
+// GetOryaConfigMapConfigurationsName return orya config map configurations name
+func GetOryaConfigMapConfigurationsName() string {
+	return internal.ORYA_CONFIG_MAP_CONFIGURATIONS_NAME
 }
 
 // GetServiceAccountName return service account name
@@ -86,14 +86,14 @@ func GetServiceAccountName() string {
 	return internal.SERVICE_ACCOUNT_NAME
 }
 
-// GetDocpReleaseName return release name the docp
-func GetDocpReleaseName() string {
+// GetOryaReleaseName return release name the orya
+func GetOryaReleaseName() string {
 	return os.Getenv("RELEASE_NAME")
 }
 
-// GetDocpUpdaterRepositoryName return docp updater repository name
-func GetDocpUpdaterRepositoryName(version string) string {
-	name := fmt.Sprintf("%s/%s:%s", internal.DOCP_REPOSITORY_IMAGE_NAME, internal.DOCP_DEPLOYMENT_UPDATER_NAME, version)
+// GetOryaUpdaterRepositoryName return orya updater repository name
+func GetOryaUpdaterRepositoryName(version string) string {
+	name := fmt.Sprintf("%s/%s:%s", internal.ORYA_REPOSITORY_IMAGE_NAME, internal.ORYA_DEPLOYMENT_UPDATER_NAME, version)
 	return name
 }
 
@@ -105,57 +105,57 @@ func GetRepositoryImage(name string) string {
 		if len(managerImage) > 0 {
 			return managerImage
 		} else {
-			return fmt.Sprintf("%s/%s", internal.DOCP_REPOSITORY_IMAGE_NAME, "k8s-manager")
+			return fmt.Sprintf("%s/%s", internal.ORYA_REPOSITORY_IMAGE_NAME, "k8s-manager")
 		}
 	case "agent":
 		agentImage := os.Getenv("AGENT_IMAGE_NAME")
 		if len(agentImage) > 0 {
 			return agentImage
 		} else {
-			return fmt.Sprintf("%s/%s", internal.DOCP_REPOSITORY_IMAGE_NAME, "k8s-agent")
+			return fmt.Sprintf("%s/%s", internal.ORYA_REPOSITORY_IMAGE_NAME, "k8s-agent")
 		}
 	case "webhook":
 		webhookImage := os.Getenv("WEBHOOK_IMAGE_NAME")
 		if len(webhookImage) > 0 {
 			return webhookImage
 		} else {
-			return fmt.Sprintf("%s/%s", internal.DOCP_REPOSITORY_IMAGE_NAME, "k8s-webhook")
+			return fmt.Sprintf("%s/%s", internal.ORYA_REPOSITORY_IMAGE_NAME, "k8s-webhook")
 		}
 	}
 	return ""
 }
 
-// GetDocpDeploymentName return name of deployment
-func GetDocpDeploymentName(name string) string {
+// GetOryaDeploymentName return name of deployment
+func GetOryaDeploymentName(name string) string {
 	switch name {
 	case "manager":
 		managerDeployNamme := os.Getenv("MANAGER_DEPLOYMENT_NAME")
 		if len(managerDeployNamme) > 0 {
 			return managerDeployNamme
 		} else {
-			return internal.DOCP_DEPLOYMENT_MANAGER_NAME
+			return internal.ORYA_DEPLOYMENT_MANAGER_NAME
 		}
 	case "agent":
 		agentDeployName := os.Getenv("AGENT_DEPLOYMENT_NAME")
 		if len(agentDeployName) > 0 {
 			return agentDeployName
 		} else {
-			return internal.DOCP_DEPLOYMENT_AGENT_NAME
+			return internal.ORYA_DEPLOYMENT_AGENT_NAME
 		}
 	case "webhook":
 		webhookDeployName := os.Getenv("WEBHOOK_DEPLOYMENT_NAME")
 		if len(webhookDeployName) > 0 {
 			return webhookDeployName
 		} else {
-			return internal.DOCP_DEPLOYMENT_WEBHOOK_NAME
+			return internal.ORYA_DEPLOYMENT_WEBHOOK_NAME
 		}
 	default:
 		return ""
 	}
 }
 
-// GetDocpContainerName return name of container pods
-func GetDocpContainerName(name string) string {
+// GetOryaContainerName return name of container pods
+func GetOryaContainerName(name string) string {
 	switch name {
 	case "manager":
 		return internal.CONTAINER_MANAGER_NAME
@@ -168,9 +168,9 @@ func GetDocpContainerName(name string) string {
 	}
 }
 
-// ErrorDocpApiKeyNotFound return error the api key docp not found
-func ErrorDocpApiKeyNotFound() error {
-	return internal.DocpApiKeyNotFound
+// ErrorOryaApiKeyNotFound return error the api key orya not found
+func ErrorOryaApiKeyNotFound() error {
+	return internal.OryaApiKeyNotFound
 }
 
 // ErrAuthTokenClaimsInvalid return error the invalid claims token

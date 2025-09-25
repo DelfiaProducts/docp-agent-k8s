@@ -66,9 +66,9 @@ func NewManagerOperator(logger *utils.K8sLogger) *ManagerOperator {
 		mapFactorySignal:                 make(map[string]FuncFactory),
 		mapFactoryVendorsSignalUninstall: make(map[string]FuncFactory),
 		mapFactoryVendorsSignalUpdate:    make(map[string]FuncFactory),
-		namespace:                        utils.GetDocpNamespace(),
-		configMapStateName:               utils.GetDocpConfiMapStateName(),
-		configMapConfigurationsName:      utils.GetDocpConfigMapConfigurationsName(),
+		namespace:                        utils.GetOryaNamespace(),
+		configMapStateName:               utils.GetOryaConfiMapStateName(),
+		configMapConfigurationsName:      utils.GetOryaConfigMapConfigurationsName(),
 
 		pendingTransactionEvents: make([]dto.TransactionStatus, 0),
 		LockedEvents:             false,
@@ -278,12 +278,12 @@ func (m *ManagerOperator) SignalUpdateAgent(ctx context.Context, factorySignal *
 	}
 
 	//execute update agent
-	go m.NotifyStatus("update_docp_received", internal.TransactionEventOpen, "update docp received", ctx, factorySignal)
+	go m.NotifyStatus("update_orya_received", internal.TransactionEventOpen, "update orya received", ctx, factorySignal)
 
-	existedVersion, err := m.GetCurrentHelmChartVersion(m.namespace, utils.GetDocpReleaseName())
+	existedVersion, err := m.GetCurrentHelmChartVersion(m.namespace, utils.GetOryaReleaseName())
 	if err != nil {
 		m.logger.Error("failed to get current helm chart version", "error", err.Error())
-		go m.NotifyStatus("update_docp_error", internal.TransactionEventClose, "failed update agent", ctx, factorySignal)
+		go m.NotifyStatus("update_orya_error", internal.TransactionEventClose, "failed update agent", ctx, factorySignal)
 		return err
 	}
 
@@ -294,20 +294,20 @@ func (m *ManagerOperator) SignalUpdateAgent(ctx context.Context, factorySignal *
 	m.logger.Debug("already updated", "alreadyUpdated", alreadyUpdated)
 
 	if alreadyUpdated {
-		go m.NotifyStatus("update_docp_complete", internal.TransactionEventClose, "agent already updated with last version", ctx, factorySignal)
+		go m.NotifyStatus("update_orya_complete", internal.TransactionEventClose, "agent already updated with last version", ctx, factorySignal)
 		return nil
 	}
 	m.logger.Debug("execute update version agent", "timestamp", time.Now())
-	go m.NotifyStatus("update_docp_processing", internal.TransactionEventUpdate, "update docp processing", ctx, factorySignal)
+	go m.NotifyStatus("update_orya_processing", internal.TransactionEventUpdate, "update orya processing", ctx, factorySignal)
 
 	//update repository
-	job := templates.TemplateJobAutoUpdateHelmRelease(factorySignal.Namespace, utils.GetDocpReleaseName(), utils.GetHelmRepository(), applyVersion, utils.GetDocpUpdaterRepositoryName(applyVersion))
+	job := templates.TemplateJobAutoUpdateHelmRelease(factorySignal.Namespace, utils.GetOryaReleaseName(), utils.GetHelmRepository(), applyVersion, utils.GetOryaUpdaterRepositoryName(applyVersion))
 	if err := m.CreateJob(factorySignal.Namespace, &job); err != nil {
 		m.logger.Error("failed to create job", "error", err.Error())
-		go m.NotifyStatus("update_docp_error", internal.TransactionEventClose, "failed update docp", ctx, factorySignal)
+		go m.NotifyStatus("update_orya_error", internal.TransactionEventClose, "failed update orya", ctx, factorySignal)
 		return err
 	}
-	go m.NotifyStatus("update_docp_completed", internal.TransactionEventClose, "update docp completed", ctx, factorySignal)
+	go m.NotifyStatus("update_orya_completed", internal.TransactionEventClose, "update orya completed", ctx, factorySignal)
 
 	return nil
 }
@@ -348,11 +348,11 @@ func (m *ManagerOperator) SignalUpdateVendor(ctx context.Context, factorySignal 
 
 // SignalUninstall execute signal uninstall
 func (m *ManagerOperator) SignalUninstall(ctx context.Context, factorySignal *dto.FactorySignalDTO) error {
-	go m.NotifyStatus("uninstall_docp_received", internal.TransactionEventOpen, "uninstall docp received", ctx, factorySignal)
+	go m.NotifyStatus("uninstall_orya_received", internal.TransactionEventOpen, "uninstall orya received", ctx, factorySignal)
 	m.logger.Debug("execute signal uninstall", "signal type", factorySignal.Signal.TypeSignal)
 	if len(factorySignal.Signal.RemoveOtherVendors) > 0 {
 		if m.removeAllVendors(factorySignal.Signal.RemoveOtherVendors) {
-			go m.NotifyStatus("uninstall_docp_initiate", internal.TransactionEventUpdate, "all vendors initialize uninstall", ctx, factorySignal)
+			go m.NotifyStatus("uninstall_orya_initiate", internal.TransactionEventUpdate, "all vendors initialize uninstall", ctx, factorySignal)
 			// remove all
 			m.logger.Debug("signal uninstall remove all vendors", "timestamp", time.Now())
 			for _, fn := range m.mapFactoryVendorsSignalUninstall {
@@ -362,7 +362,7 @@ func (m *ManagerOperator) SignalUninstall(ctx context.Context, factorySignal *dt
 			}
 		} else {
 			// not remove all
-			go m.NotifyStatus("uninstall_docp_initiate", internal.TransactionEventUpdate, "other vendors initialize uninstall", ctx, factorySignal)
+			go m.NotifyStatus("uninstall_orya_initiate", internal.TransactionEventUpdate, "other vendors initialize uninstall", ctx, factorySignal)
 			m.logger.Debug("signal uninstall remove olther vendors", "timestamp", time.Now())
 			for _, vendor := range factorySignal.Signal.RemoveOtherVendors {
 				fn, ok := m.mapFactoryVendorsSignalUninstall[vendor]
@@ -371,37 +371,37 @@ func (m *ManagerOperator) SignalUninstall(ctx context.Context, factorySignal *dt
 						return err
 					}
 				} else {
-					m.logger.Debug("uninstall_docp_vendor_not_found", "vendor", vendor)
+					m.logger.Debug("uninstall_orya_vendor_not_found", "vendor", vendor)
 				}
 			}
 		}
 	}
 
 	time.Sleep(20 * time.Second)
-	go m.NotifyStatus("uninstall_docp_update", internal.TransactionEventUpdate, "auto uninstall update", ctx, factorySignal)
+	go m.NotifyStatus("uninstall_orya_update", internal.TransactionEventUpdate, "auto uninstall update", ctx, factorySignal)
 
 	if err := m.RemoveConfigMaps(factorySignal.Namespace); err != nil {
 		m.logger.Error("execute signal auto uninstall remove config maps", "error", err.Error())
-		go m.NotifyStatus("uninstall_docp_error", internal.TransactionEventClose, "failed remove config maps", ctx, factorySignal)
+		go m.NotifyStatus("uninstall_orya_error", internal.TransactionEventClose, "failed remove config maps", ctx, factorySignal)
 		return err
 	}
 	if err := m.AutoUninstall(factorySignal.Namespace); err != nil {
 		m.logger.Error("execute signal auto uninstall", "error", err.Error())
-		go m.NotifyStatus("uninstall_docp_error", internal.TransactionEventClose, "failed auto uninstall", ctx, factorySignal)
+		go m.NotifyStatus("uninstall_orya_error", internal.TransactionEventClose, "failed auto uninstall", ctx, factorySignal)
 		return err
 	}
-	if err := m.RemoveDocpMutatingAgent(utils.GetMutatingWebhookName(), factorySignal.Namespace); err != nil {
+	if err := m.RemoveOryaMutatingAgent(utils.GetMutatingWebhookName(), factorySignal.Namespace); err != nil {
 		m.logger.Error("execute signal auto uninstall remove agent mutate", "error", err.Error())
-		go m.NotifyStatus("uninstall_docp_error", internal.TransactionEventClose, "failed remove agent mutate", ctx, factorySignal)
+		go m.NotifyStatus("uninstall_orya_error", internal.TransactionEventClose, "failed remove agent mutate", ctx, factorySignal)
 		return err
 	}
 
-	if err := m.RemoveDocpNamespace(factorySignal.Namespace); err != nil {
-		go m.NotifyStatus("uninstall_docp_error", internal.TransactionEventClose, "failed remove docp namespace", ctx, factorySignal)
+	if err := m.RemoveOryaNamespace(factorySignal.Namespace); err != nil {
+		go m.NotifyStatus("uninstall_orya_error", internal.TransactionEventClose, "failed remove orya namespace", ctx, factorySignal)
 		return err
 	}
 
-	go m.NotifyStatus("uninstall_docp_completed", internal.TransactionEventClose, "uninstall docp completed", ctx, factorySignal)
+	go m.NotifyStatus("uninstall_orya_completed", internal.TransactionEventClose, "uninstall orya completed", ctx, factorySignal)
 	return nil
 }
 
@@ -413,17 +413,17 @@ func (m *ManagerOperator) SignalDebugSession(ctx context.Context, factorySignal 
 // DatadogUninstall execute uninstall the datadog
 func (m *ManagerOperator) DatadogUninstall(ctx context.Context, factorySignal *dto.FactorySignalDTO) error {
 	m.logger.Debug("execute datadog uninstall", "timestamp", time.Now())
-	go m.NotifyStatus("uninstall_docp_vendor_received", internal.TransactionEventUpdate, "uninstall docp vendor received", ctx, factorySignal)
+	go m.NotifyStatus("uninstall_orya_vendor_received", internal.TransactionEventUpdate, "uninstall orya vendor received", ctx, factorySignal)
 	configMapConfiguration, err := m.GetConfigMap(factorySignal.ConfigMapConfigurationName, factorySignal.Namespace)
 	if err != nil {
 		m.logger.Error("execute signal get config map on datadog uninstall", "error", err.Error())
-		go m.NotifyStatus("uninstall_docp_vendor_error", internal.TransactionEventClose, "failed uninstall docp vendor", ctx, factorySignal)
+		go m.NotifyStatus("uninstall_orya_vendor_error", internal.TransactionEventClose, "failed uninstall orya vendor", ctx, factorySignal)
 		return err
 	}
 	exists, err := m.VerifyDatadogResourceExists("datadog", factorySignal.DatadogNamespace)
 	if err != nil {
 		m.logger.Error("verify datadog resource exists", "error", err.Error())
-		go m.NotifyStatus("uninstall_docp_vendor_error", internal.TransactionEventClose, "failed uninstall docp vendor", ctx, factorySignal)
+		go m.NotifyStatus("uninstall_orya_vendor_error", internal.TransactionEventClose, "failed uninstall orya vendor", ctx, factorySignal)
 		return err
 	}
 	if exists {
@@ -431,21 +431,21 @@ func (m *ManagerOperator) DatadogUninstall(ctx context.Context, factorySignal *d
 		if ok {
 			switch modeDatadog {
 			case "helm":
-				go m.NotifyStatus("uninstall_docp_vendor_processing", internal.TransactionEventUpdate, "uninstall docp vendor processing", ctx, factorySignal)
+				go m.NotifyStatus("uninstall_orya_vendor_processing", internal.TransactionEventUpdate, "uninstall orya vendor processing", ctx, factorySignal)
 				if err := m.UninstallDatadogCall("helm", dto.DatadogDTO{DatadogNamespace: factorySignal.DatadogNamespace}); err != nil {
 					m.logger.Error("execute uninstall datadog with helm", "error", err.Error())
-					go m.NotifyStatus("uninstall_docp_vendor_error", internal.TransactionEventClose, "failed uninstall docp vendor", ctx, factorySignal)
+					go m.NotifyStatus("uninstall_orya_vendor_error", internal.TransactionEventClose, "failed uninstall orya vendor", ctx, factorySignal)
 					return err
 				}
-				go m.NotifyStatus("uninstall_docp_vendor_complete", internal.TransactionEventClose, "uninstall docp vendo completed", ctx, factorySignal)
+				go m.NotifyStatus("uninstall_orya_vendor_complete", internal.TransactionEventClose, "uninstall orya vendo completed", ctx, factorySignal)
 			case "operator":
-				go m.NotifyStatus("uninstall_docp_vendor_processing", internal.TransactionEventUpdate, "uninstall docp vendor processing", ctx, factorySignal)
+				go m.NotifyStatus("uninstall_orya_vendor_processing", internal.TransactionEventUpdate, "uninstall orya vendor processing", ctx, factorySignal)
 				if err := m.UninstallDatadogCall("operator", dto.DatadogDTO{DatadogNamespace: factorySignal.DatadogNamespace}); err != nil {
 					m.logger.Error("execute uninstall datadog with operator", "error", err.Error())
-					go m.NotifyStatus("uninstall_docp_vendor_error", internal.TransactionEventClose, "failed uninstall docp vendor", ctx, factorySignal)
+					go m.NotifyStatus("uninstall_orya_vendor_error", internal.TransactionEventClose, "failed uninstall orya vendor", ctx, factorySignal)
 					return err
 				}
-				go m.NotifyStatus("uninstall_docp_vendor_complete", internal.TransactionEventClose, "uninstall docp vendor completed", ctx, factorySignal)
+				go m.NotifyStatus("uninstall_orya_vendor_complete", internal.TransactionEventClose, "uninstall orya vendor completed", ctx, factorySignal)
 			}
 		}
 	}
@@ -462,7 +462,7 @@ func (m *ManagerOperator) DatadogUpdate(ctx context.Context, factorySignal *dto.
 	exists, err := m.VerifyDatadogResourceExists("datadog", factorySignal.DatadogNamespace)
 	if err != nil {
 		m.logger.Error("verify datadog resource exists", "error", err.Error())
-		go m.NotifyStatus("update_docp_vendor_error", internal.TransactionEventClose, "failed update configurations vendor", ctx, factorySignal)
+		go m.NotifyStatus("update_orya_vendor_error", internal.TransactionEventClose, "failed update configurations vendor", ctx, factorySignal)
 		return err
 	}
 	if exists {
@@ -472,38 +472,38 @@ func (m *ManagerOperator) DatadogUpdate(ctx context.Context, factorySignal *dto.
 			switch modeDatadog {
 			case "helm":
 				if modeVendor == "helm" {
-					go m.NotifyStatus("update_docp_vendor_processing", internal.TransactionEventUpdate, "update docp vendor processing", ctx, factorySignal)
+					go m.NotifyStatus("update_orya_vendor_processing", internal.TransactionEventUpdate, "update orya vendor processing", ctx, factorySignal)
 					if err := m.UpdateDatadogConfigurations("helm", dto.DatadogDTO{DatadogNamespace: factorySignal.DatadogNamespace, Content: factorySignal.Signal.Vendor.Content, Version: factorySignal.Signal.Vendor.Version}); err != nil {
 						m.logger.Error("execute update datadog with helm", "error", err.Error())
-						go m.NotifyStatus("uninstall_docp_vendor_error", internal.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
+						go m.NotifyStatus("uninstall_orya_vendor_error", internal.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
 						return err
 					}
 					configMapConfiguration.Data["datadog_hash"] = utils.GenerateHashMd5([]byte(factorySignal.Signal.Vendor.Content))
 					if err := m.UpdateConfigMap(m.configMapConfigurationsName, m.namespace, configMapConfiguration.Data); err != nil {
-						go m.NotifyStatus("uninstall_docp_vendor_error", internal.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
+						go m.NotifyStatus("uninstall_orya_vendor_error", internal.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
 						return err
 					}
-					go m.NotifyStatus("update_docp_vendor_complete", internal.TransactionEventClose, "update docp vendor completed", ctx, factorySignal)
+					go m.NotifyStatus("update_orya_vendor_complete", internal.TransactionEventClose, "update orya vendor completed", ctx, factorySignal)
 				}
 			case "operator":
 				if modeVendor == "operator" {
-					go m.NotifyStatus("update_docp_vendor_processing", internal.TransactionEventUpdate, "update docp vendor processing", ctx, factorySignal)
+					go m.NotifyStatus("update_orya_vendor_processing", internal.TransactionEventUpdate, "update orya vendor processing", ctx, factorySignal)
 					if err := m.UpdateDatadogConfigurations("operator", dto.DatadogDTO{DatadogNamespace: factorySignal.DatadogNamespace, Content: factorySignal.Signal.Vendor.Content, Version: factorySignal.Signal.Vendor.Version}); err != nil {
 						m.logger.Error("execute update datadog with operator", "error", err.Error())
-						go m.NotifyStatus("update_docp_vendor__error", internal.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
+						go m.NotifyStatus("update_orya_vendor__error", internal.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
 						return err
 					}
 					configMapConfiguration.Data["datadog_hash"] = utils.GenerateHashMd5([]byte(factorySignal.Signal.Vendor.Content))
 					if err := m.UpdateConfigMap(m.configMapConfigurationsName, m.namespace, configMapConfiguration.Data); err != nil {
-						go m.NotifyStatus("uninstall_docp_vendor_error", internal.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
+						go m.NotifyStatus("uninstall_orya_vendor_error", internal.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
 						return err
 					}
-					go m.NotifyStatus("update_docp_vendor_complete", internal.TransactionEventClose, "update docp vendor completed", ctx, factorySignal)
+					go m.NotifyStatus("update_orya_vendor_complete", internal.TransactionEventClose, "update orya vendor completed", ctx, factorySignal)
 				}
 			}
 		}
 	} else {
-		go m.NotifyStatus("update_docp_vendor_error", internal.TransactionEventClose, "failed verify vendor exists", ctx, factorySignal)
+		go m.NotifyStatus("update_orya_vendor_error", internal.TransactionEventClose, "failed verify vendor exists", ctx, factorySignal)
 	}
 
 	return nil
@@ -851,7 +851,7 @@ func (m *ManagerOperator) CreateJob(namespace string, job *batchv1.Job) error {
 	return nil
 }
 
-// AutoUninstall execute auto uninstall the docp agent
+// AutoUninstall execute auto uninstall the orya agent
 func (m *ManagerOperator) AutoUninstall(namespace string) error {
 	job := templates.TemplateJobAutoUninstall(namespace)
 	if err := m.CreateJob(namespace, &job); err != nil {
@@ -860,7 +860,7 @@ func (m *ManagerOperator) AutoUninstall(namespace string) error {
 	return nil
 }
 
-// RemoveConfigMaps execute remove config maps the docp agent
+// RemoveConfigMaps execute remove config maps the orya agent
 func (m *ManagerOperator) RemoveConfigMaps(namespace string) error {
 	job := templates.TemplateJobRemoveConfiMaps(namespace)
 	if err := m.CreateJob(namespace, &job); err != nil {
@@ -869,26 +869,26 @@ func (m *ManagerOperator) RemoveConfigMaps(namespace string) error {
 	return nil
 }
 
-// RemoveDocpNamespace execute remove docp namespace
-func (m *ManagerOperator) RemoveDocpNamespace(namespace string) error {
-	job := templates.TemplateJobRemoveDocpNamespace(namespace)
+// RemoveOryaNamespace execute remove orya namespace
+func (m *ManagerOperator) RemoveOryaNamespace(namespace string) error {
+	job := templates.TemplateJobRemoveOryaNamespace(namespace)
 	if err := m.CreateJob(namespace, &job); err != nil {
 		return err
 	}
 	return nil
 }
 
-// RemoveDocpHelmRelease execute remove docp helm release
-func (m *ManagerOperator) RemoveDocpHelmRelease(releaseName, namespace string) error {
-	job := templates.TemplateJobRemoveDocpHelmRelease(releaseName, namespace)
+// RemoveOryaHelmRelease execute remove orya helm release
+func (m *ManagerOperator) RemoveOryaHelmRelease(releaseName, namespace string) error {
+	job := templates.TemplateJobRemoveOryaHelmRelease(releaseName, namespace)
 	if err := m.CreateJob(namespace, &job); err != nil {
 		return err
 	}
 	return nil
 }
 
-// RemoveDocpMutatingAgent execute remove docp mutating agent
-func (m *ManagerOperator) RemoveDocpMutatingAgent(mutateName, namespace string) error {
+// RemoveOryaMutatingAgent execute remove orya mutating agent
+func (m *ManagerOperator) RemoveOryaMutatingAgent(mutateName, namespace string) error {
 	job := templates.TemplateJobRemoveMutatingWebhook(mutateName, namespace)
 	if err := m.CreateJob(namespace, &job); err != nil {
 		return err
@@ -896,8 +896,8 @@ func (m *ManagerOperator) RemoveDocpMutatingAgent(mutateName, namespace string) 
 	return nil
 }
 
-// RemoveDocpClusterRole execute remove docp cluster role
-func (m *ManagerOperator) RemoveDocpClusterRole(clusterRoleName, namespace string) error {
+// RemoveOryaClusterRole execute remove orya cluster role
+func (m *ManagerOperator) RemoveOryaClusterRole(clusterRoleName, namespace string) error {
 	job := templates.TemplateJobRemoveClusterRole(clusterRoleName, namespace)
 	if err := m.CreateJob(namespace, &job); err != nil {
 		return err
@@ -905,8 +905,8 @@ func (m *ManagerOperator) RemoveDocpClusterRole(clusterRoleName, namespace strin
 	return nil
 }
 
-// RemoveDocpClusterRoleBinding execute remove docp cluster role binding
-func (m *ManagerOperator) RemoveDocpClusterRoleBinding(clusterRoleBindingName, namespace string) error {
+// RemoveOryaClusterRoleBinding execute remove orya cluster role binding
+func (m *ManagerOperator) RemoveOryaClusterRoleBinding(clusterRoleBindingName, namespace string) error {
 	job := templates.TemplateJobRemoveClusterRoleBinding(clusterRoleBindingName, namespace)
 	if err := m.CreateJob(namespace, &job); err != nil {
 		return err
@@ -974,19 +974,19 @@ func (m *ManagerOperator) ExecuteRegisterCall(mode string, metadata dto.K8sRegis
 	transaction := utils.NewTransactionStatus()
 	ctx := context.WithValue(context.Background(), dto.ContextTransactionStatus, transaction)
 	factoryDto := dto.FactorySignalDTO{
-		Namespace:                  utils.GetDocpNamespace(),
-		ConfigMapConfigurationName: utils.GetDocpConfigMapConfigurationsName(),
+		Namespace:                  utils.GetOryaNamespace(),
+		ConfigMapConfigurationName: utils.GetOryaConfigMapConfigurationsName(),
 	}
 	switch mode {
 	case "create":
-		resp, statusCode, err := m.registerService.RegisterCall("compute/v1/docp", metadata, apiKey, token, true)
+		resp, statusCode, err := m.registerService.RegisterCall("compute/v1/orya", metadata, apiKey, token, true)
 		if err != nil {
 			return nil, 0, err
 		}
 		return resp, statusCode, err
 	case "update":
 		go m.NotifyStatus("update_metadata", internal.TransactionEventOpen, "update metadata", ctx, &factoryDto)
-		resp, statusCode, err := m.registerService.RegisterCall("compute/v1/docp", metadata, apiKey, token, false)
+		resp, statusCode, err := m.registerService.RegisterCall("compute/v1/orya", metadata, apiKey, token, false)
 		if err != nil {
 			go m.NotifyStatus("update_metadata_error", internal.TransactionEventClose, "error on update metadata", ctx, &factoryDto)
 		}

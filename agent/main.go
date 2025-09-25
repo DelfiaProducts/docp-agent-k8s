@@ -15,6 +15,6 @@ func main() {
 	logger := utils.NewK8sLoggerText(os.Stdout)
 	k8sAgent := pkg.NewK8sAgent(port, logger)
 	if err := k8sAgent.Start(); err != nil {
-		logger.Error("docp agent", "error", err.Error())
+		logger.Error("orya agent", "error", err.Error())
 	}
 }

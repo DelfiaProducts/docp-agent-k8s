@@ -1,5 +1,5 @@
 apiVersion: v2
-name: k8s-docp
-description: Um Helm Chart para o Docp agent 
+name: k8s-orya
+description: Um Helm Chart para o Orya agent 
 version: 0.1.1 # Versão do seu Chart
 appVersion: "0.1.0" # Versão do seu aplicativo (manager/agent)

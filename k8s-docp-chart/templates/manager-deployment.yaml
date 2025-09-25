@@ -1,23 +1,23 @@
-# k8s-docp-chart/templates/manager-deployment.yaml
+# k8s-orya-chart/templates/manager-deployment.yaml
 {{ if .Values.manager.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "k8s-docp.fullname" . }}-manager
+  name: {{ include "k8s-orya.fullname" . }}-manager
   namespace: {{ .Values.namespace }}
   labels:
-    {{- include "k8s-docp.labels" . | nindent 4 }}
+    {{- include "k8s-orya.labels" . | nindent 4 }}
     app.kubernetes.io/component: manager # Label específico do componente
 spec:
   replicas: {{ .Values.manager.replicaCount }}
   selector:
     matchLabels:
-      {{- include "k8s-docp.selectorLabels" . | nindent 6 }}
+      {{- include "k8s-orya.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/component: manager
   template:
     metadata:
       labels:
-        {{- include "k8s-docp.selectorLabels" . | nindent 8 }}
+        {{- include "k8s-orya.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: manager
     spec:
       serviceAccountName: {{ .Values.serviceAccount.name }}
@@ -40,34 +40,34 @@ spec:
               value: {{ $value | quote }}
             {{- end }}
             - name: SERVICE_AGENT_NAME
-              value: {{ include "k8s-docp.fullname" . }}-agent-svc
+              value: {{ include "k8s-orya.fullname" . }}-agent-svc
             - name: MANAGER_DEPLOYMENT_NAME
-              value: {{ include "k8s-docp.fullname" . }}-manager
+              value: {{ include "k8s-orya.fullname" . }}-manager
             - name: AGENT_DEPLOYMENT_NAME
-              value: {{ include "k8s-docp.fullname" . }}-agent
+              value: {{ include "k8s-orya.fullname" . }}-agent
             - name: WEBHOOK_DEPLOYMENT_NAME
-              value: {{ include "k8s-docp.fullname" . }}-webhook
+              value: {{ include "k8s-orya.fullname" . }}-webhook
             - name: MANAGER_IMAGE_NAME
               value: {{ .Values.manager.image.repository }}
             - name: AGENT_IMAGE_NAME
               value: {{ .Values.agent.image.repository }}
             - name: WEBHOOK_IMAGE_NAME
               value: {{ .Values.webhook.image.repository }}
-            - name: DOCP_DOMAIN
-              value: {{ .Values.docp.docp_site.url }}
+            - name: ORYA_DOMAIN
+              value: {{ .Values.orya.orya_site.url }}
             - name: CLUSTER_NAME
-              value: {{ .Values.docp.cluster_name }}
+              value: {{ .Values.orya.cluster_name }}
             - name: RELEASE_NAME
               value: {{ .Release.Name }}
-            - name: DOCP_API_KEY
+            - name: ORYA_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.docp.name }}
-                  key: DOCP_API_KEY
+                  name: {{ .Values.orya.name }}
+                  key: ORYA_API_KEY
             - name: TAGS
-              value: {{ default "" (.Values.docp.data.TAGS | join ",") | quote }}
+              value: {{ default "" (.Values.orya.data.TAGS | join ",") | quote }}
             - name: VERSION
-              value: {{ default "latest" (.Values.docp.version) }}
+              value: {{ default "latest" (.Values.orya.version) }}
 
           livenessProbe:
             httpGet:

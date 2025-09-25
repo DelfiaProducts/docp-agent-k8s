@@ -15,6 +15,6 @@ func main() {
 	logger := utils.NewK8sLoggerText(os.Stdout)
 	k8sWebhook := pkg.NewK8sWebhook(port, logger)
 	if err := k8sWebhook.Start(); err != nil {
-		logger.Error("docp webhook", "error", err.Error())
+		logger.Error("orya webhook", "error", err.Error())
 	}
 }

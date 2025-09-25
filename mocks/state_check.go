@@ -39,7 +39,7 @@ var StateCheckMocks = []StateCheckMockResponse{
 			Signal: dto.K8sConfigSignal{
 				TypeSignal: "update",
 				Agents: dto.K8sConfigSignalAgents{
-					DocpAgent: dto.K8sConfigSignalDocp{
+					OryaAgent: dto.K8sConfigSignalOrya{
 						Version: "v1.1",
 					},
 				},
@@ -80,7 +80,7 @@ var StateCheckMocks = []StateCheckMockResponse{
 						{
 							Name: "teste-mutate-cliente",
 							Add: []string{
-								"label.docp.com/env=sandbox",
+								"label.orya.com/env=sandbox",
 								"tags.datadoghq.com/service=$[labels.app]",
 								"tags.datadoghq.com/service2=$[annotations.service2]",
 							},
@@ -90,7 +90,7 @@ var StateCheckMocks = []StateCheckMockResponse{
 						{
 							Name: "app1",
 							Add: []string{
-								"label.docp.com/env=local",
+								"label.orya.com/env=local",
 							},
 						},
 					},
