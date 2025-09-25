@@ -15,7 +15,7 @@ type K8sConfigSignal struct {
 }
 
 type K8sConfigSignalAgents struct {
-	OryaAgent    K8sConfigSignalOrya         `json:"orya-agent"`
+	OryaAgent    K8sConfigSignalOrya         `json:"docp-agent"`
 	DatadogAgent K8sConfigSignalDatadogAgent `json:"datadog-agent"`
 }
 
@@ -195,7 +195,7 @@ type TransactionStatus struct {
 
 // AuthTokenClaims is struct for auth token claims
 type AuthTokenClaims struct {
-	OryaOrgId int    `json:"orya_org_id"`
+	OryaOrgId int    `json:"docp_org_id"`
 	ComputeId string `json:"compute_id"`
 }
 
