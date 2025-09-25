@@ -3,9 +3,9 @@ package tests
 import (
 	"testing"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/bdd"
-	"github.com/DelfiaProducts/docp-agent-k8s/mocks"
-	"github.com/DelfiaProducts/docp-agent-k8s/utils"
+	"github.com/OryaHub/agent-k8s/bdd"
+	"github.com/OryaHub/agent-k8s/mocks"
+	"github.com/OryaHub/agent-k8s/utils"
 )
 
 func TestDecodeJwt(t *testing.T) {

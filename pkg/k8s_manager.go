@@ -11,11 +11,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/dto"
-	"github.com/DelfiaProducts/docp-agent-k8s/internal"
-	"github.com/DelfiaProducts/docp-agent-k8s/operators"
-	"github.com/DelfiaProducts/docp-agent-k8s/templates"
-	"github.com/DelfiaProducts/docp-agent-k8s/utils"
+	"github.com/OryaHub/agent-k8s/dto"
+	"github.com/OryaHub/agent-k8s/internal"
+	"github.com/OryaHub/agent-k8s/operators"
+	"github.com/OryaHub/agent-k8s/templates"
+	"github.com/OryaHub/agent-k8s/utils"
 
 	corev1 "k8s.io/api/core/v1"
 )

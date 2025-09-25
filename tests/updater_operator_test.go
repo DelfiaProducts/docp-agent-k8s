@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/bdd"
-	"github.com/DelfiaProducts/docp-agent-k8s/operators"
-	"github.com/DelfiaProducts/docp-agent-k8s/utils"
+	"github.com/OryaHub/agent-k8s/bdd"
+	"github.com/OryaHub/agent-k8s/operators"
+	"github.com/OryaHub/agent-k8s/utils"
 	"helm.sh/helm/v3/pkg/release"
 )
 

@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/dto"
-	"github.com/DelfiaProducts/docp-agent-k8s/operators"
-	"github.com/DelfiaProducts/docp-agent-k8s/utils"
+	"github.com/OryaHub/agent-k8s/dto"
+	"github.com/OryaHub/agent-k8s/operators"
+	"github.com/OryaHub/agent-k8s/utils"
 	v1 "k8s.io/api/admission/v1"
 )
 

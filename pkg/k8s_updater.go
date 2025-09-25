@@ -4,8 +4,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/operators"
-	"github.com/DelfiaProducts/docp-agent-k8s/utils"
+	"github.com/OryaHub/agent-k8s/operators"
+	"github.com/OryaHub/agent-k8s/utils"
 )
 
 // K8sUpdater is struct for updating the k8s

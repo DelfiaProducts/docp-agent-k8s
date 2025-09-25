@@ -5,10 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/bdd"
-	"github.com/DelfiaProducts/docp-agent-k8s/dto"
-	"github.com/DelfiaProducts/docp-agent-k8s/operators"
-	"github.com/DelfiaProducts/docp-agent-k8s/utils"
+	"github.com/OryaHub/agent-k8s/bdd"
+	"github.com/OryaHub/agent-k8s/dto"
+	"github.com/OryaHub/agent-k8s/operators"
+	"github.com/OryaHub/agent-k8s/utils"
 	corev1 "k8s.io/api/core/v1"
 	rbcav1 "k8s.io/api/rbac/v1"
 )

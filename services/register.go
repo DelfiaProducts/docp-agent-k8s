@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/dto"
-	"github.com/DelfiaProducts/docp-agent-k8s/utils"
+	"github.com/OryaHub/agent-k8s/dto"
+	"github.com/OryaHub/agent-k8s/utils"
 )
 
 // RegisterService is struct for register service

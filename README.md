@@ -1,4 +1,4 @@
-# docp-agent-k8s
+# agent-k8s
 
 Este projeto é um agente para gerenciamento de provedores de monitoramento para kubernetes.
 
@@ -17,8 +17,8 @@ Este projeto é um agente para gerenciamento de provedores de monitoramento para
 ## Instalação
 
 ```bash
-git clone https://github.com/DelfiaProducts/docp-agent-k8s.git
-cd docp-agent-k8s
+git clone https://github.com/OryaHub/agent-k8s.git
+cd agent-k8s
 ```
 ## Construção
 

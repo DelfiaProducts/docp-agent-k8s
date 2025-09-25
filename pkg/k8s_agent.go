@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/dto"
-	"github.com/DelfiaProducts/docp-agent-k8s/operators"
-	"github.com/DelfiaProducts/docp-agent-k8s/utils"
+	"github.com/OryaHub/agent-k8s/dto"
+	"github.com/OryaHub/agent-k8s/operators"
+	"github.com/OryaHub/agent-k8s/utils"
 )
 
 // K8sAgent is struct for agent the k8s

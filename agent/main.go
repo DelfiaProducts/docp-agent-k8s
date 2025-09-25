@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/pkg"
-	"github.com/DelfiaProducts/docp-agent-k8s/utils"
+	"github.com/OryaHub/agent-k8s/pkg"
+	"github.com/OryaHub/agent-k8s/utils"
 )
 
 func main() {

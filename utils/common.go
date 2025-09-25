@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/internal"
+	"github.com/OryaHub/agent-k8s/internal"
 )
 
 // GetDomainUrl return domain url
