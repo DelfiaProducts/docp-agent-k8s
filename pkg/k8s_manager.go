@@ -215,7 +215,7 @@ func (k *K8sManager) handlerRegister() error {
 					if err != nil {
 						return err
 					}
-					configMapConfiguration.Data["orya_org_id"] = strconv.Itoa(claims.OryaOrgId)
+					configMapConfiguration.Data["org_id"] = strconv.Itoa(claims.OryaOrgId)
 					configMapConfiguration.Data["compute_id"] = claims.ComputeId
 				}
 				configMapConfiguration.Data["registered"] = "true"
