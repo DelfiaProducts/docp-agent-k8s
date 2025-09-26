@@ -110,8 +110,8 @@ jobs:
           aws s3 cp ${{ env.TFSTATE_S3_PATH }} resources_publics.tfstate
           echo "Verificando estrutura do tfstate..."
           jq '.outputs.bucket_ids' resources_publics.tfstate
-          echo "Extraindo valor do orya-agent..."
-          orya_agent=$(jq -r '.outputs.public_bucket_ids.value."orya-agent"' resources_publics.tfstate)
+          echo "Extraindo valor do docp-agent..."
+          orya_agent=$(jq -r '.outputs.public_bucket_ids.value."docp-agent"' resources_publics.tfstate)
           echo "Valor extraído: $orya_agent"
           echo "orya_agent=$orya_agent" >> $GITHUB_ENV
       
