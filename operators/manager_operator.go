@@ -979,14 +979,14 @@ func (m *ManagerOperator) ExecuteRegisterCall(mode string, metadata dto.K8sRegis
 	}
 	switch mode {
 	case "create":
-		resp, statusCode, err := m.registerService.RegisterCall("compute/v1/orya", metadata, apiKey, token, true)
+		resp, statusCode, err := m.registerService.RegisterCall("compute/v1/docp", metadata, apiKey, token, true)
 		if err != nil {
 			return nil, 0, err
 		}
 		return resp, statusCode, err
 	case "update":
 		go m.NotifyStatus("update_metadata", internal.TransactionEventOpen, "update metadata", ctx, &factoryDto)
-		resp, statusCode, err := m.registerService.RegisterCall("compute/v1/orya", metadata, apiKey, token, false)
+		resp, statusCode, err := m.registerService.RegisterCall("compute/v1/docp", metadata, apiKey, token, false)
 		if err != nil {
 			go m.NotifyStatus("update_metadata_error", internal.TransactionEventClose, "error on update metadata", ctx, &factoryDto)
 		}
