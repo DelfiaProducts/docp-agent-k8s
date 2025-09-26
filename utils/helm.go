@@ -353,7 +353,7 @@ func (hc *HelmClient) UpgradeOryaToLatestVersion(namespace, releaseName, reposit
 
 	currentVersion := currentRelease.Chart.Metadata.Version
 	if currentVersion == latestVersion {
-		hc.logger.Debug("DOCP is already at the latest version",
+		hc.logger.Debug("ORYA is already at the latest version",
 			"currentVersion", currentVersion,
 			"latestVersion", latestVersion)
 		return nil
@@ -654,7 +654,7 @@ func (hc *HelmClient) ValidateAllOryaDeploymentsSuccess(namespace string) (bool,
 		}
 	}
 
-	hc.logger.Debug("all DOCP deployments validation successful", "namespace", namespace)
+	hc.logger.Debug("all ORYA deployments validation successful", "namespace", namespace)
 	return true, nil
 }
 
