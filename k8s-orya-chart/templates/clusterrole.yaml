@@ -136,9 +136,13 @@ rules:
   - apiGroups: ["apiextensions.k8s.io"]
     resources: ["customresourcedefinitions"]
     verbs: ["create", "list", "get", "watch","patch","update", "delete"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["rollouts"]
+    verbs: ["list", "watch"]
   - apiGroups: ["datadoghq.com"]
     resources:
       [
+        "*",
         "datadogagents",
         "datadogagents/finalizers",
         "datadogagents/status",
@@ -160,6 +164,15 @@ rules:
         "watermarkpodautoscalers",
       ]
     verbs: ["*", "create", "list", "get", "watch", "delete", "update"]
+  - apiGroups: ["karpenter.azure.com"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["karpenter.k8s.aws"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["karpenter.sh"]
+    resources: ["*"]
+    verbs: ["*"]
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources:
       [
