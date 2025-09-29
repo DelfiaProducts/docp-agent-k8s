@@ -612,6 +612,16 @@ func (k *K8sManager) executeSignal(signal dto.K8sSignal, datadogNamespace string
 	return nil
 }
 
+// validateDatadogMode validate datadog mode
+func (k *K8sManager) validateDatadogMode(mode string) bool {
+	switch mode {
+	case "helm", "operator":
+		return true
+	default:
+		return false
+	}
+}
+
 func (k *K8sManager) executeAction(action dto.K8sAction) error {
 	transaction := utils.NewTransactionStatus()
 	ctx := context.WithValue(context.Background(), dto.ContextTransactionStatus, transaction)
@@ -623,9 +633,39 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 		return err
 	}
 	datadogNamespace := configMapConfiguration.Data["datadog_namespace"]
+	actualMode := configMapConfiguration.Data["datadog_mode"]
+	newMode := action.Envs["mode"]
+	validDatadogMode := k.validateDatadogMode(newMode)
+	if !validDatadogMode {
+		k.logger.Error("execute action invalid datadog mode", "mode", newMode)
+		return utils.ErrInvalidDatadogMode()
+	}
+	if len(actualMode) > 0 && newMode != actualMode {
+		k.logger.Info("execute action mode change", "actualMode", actualMode, "newMode", action.Envs["mode"])
+		if err := k.operator.UninstallDatadogCall(actualMode, dto.DatadogDTO{DatadogNamespace: datadogNamespace}); err != nil {
+			k.logger.Error("execute action uninstall datadog", "error", err.Error())
+			return err
+		}
+		for {
+			time.Sleep(1 * time.Second)
+			namespaces, err := k.operator.GetNamespaces()
+			if err != nil {
+				return err
+			}
+			vendor, err := k.operator.DatadogAlreadyInstalled("datadog", namespaces)
+			if err != nil {
+				return err
+			}
+			if !vendor.Installed {
+				break
+			}
+			k.logger.Debug("waiting for datadog uninstall", "namespaces", namespaces)
+		}
+	}
+
 	switch action.Action {
 	case "install":
-		if action.Envs["mode"] == "helm" {
+		if newMode == "helm" {
 			datadogDto := dto.DatadogDTO{
 				Content:          action.Content,
 				DatadogNamespace: datadogNamespace,
@@ -646,7 +686,7 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 			go k.operator.NotifyStatus("install_datadog_update", internal.TransactionEventUpdate, "install datadog update", ctx, &factory)
 			configMapConfiguration.Data["datadog_mode"] = "helm"
 
-		} else if action.Envs["mode"] == "operator" {
+		} else if newMode == "operator" {
 			datadogDto := dto.DatadogDTO{
 				Content:          action.Content,
 				DatadogNamespace: datadogNamespace,
