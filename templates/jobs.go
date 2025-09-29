@@ -42,7 +42,7 @@ func TemplateJobAutoUninstall(namespace string) batchv1.Job {
 					Containers: []corev1.Container{
 						{
 							Name:  "job-remove-manager",
-							Image: "bitnami/kubectl:1.29.3",
+							Image: "bitnamisecure/kubectl:latest",
 							Command: []string{
 								"/bin/sh",
 								"-c",
@@ -54,7 +54,7 @@ func TemplateJobAutoUninstall(namespace string) batchv1.Job {
 						},
 						{
 							Name:  "job-remove-agent",
-							Image: "bitnami/kubectl:1.29.3",
+							Image: "bitnamisecure/kubectl:latest",
 							Command: []string{
 								"/bin/sh",
 								"-c",
@@ -66,7 +66,7 @@ func TemplateJobAutoUninstall(namespace string) batchv1.Job {
 						},
 						{
 							Name:  "job-remove-webhook",
-							Image: "bitnami/kubectl:1.29.3",
+							Image: "bitnamisecure/kubectl:latest",
 							Command: []string{
 								"/bin/sh",
 								"-c",
@@ -114,7 +114,7 @@ func TemplateJobRemoveConfiMaps(namespace string) batchv1.Job {
 					Containers: []corev1.Container{
 						{
 							Name:  "job-remove-config-map-state",
-							Image: "bitnami/kubectl:1.29.3",
+							Image: "bitnamisecure/kubectl:latest",
 							Command: []string{
 								"/bin/sh",
 								"-c",
@@ -124,7 +124,7 @@ func TemplateJobRemoveConfiMaps(namespace string) batchv1.Job {
 							},
 						}, {
 							Name:  "job-remove-config-map-configuration",
-							Image: "bitnami/kubectl:1.29.3",
+							Image: "bitnamisecure/kubectl:latest",
 							Command: []string{
 								"/bin/sh",
 								"-c",
@@ -168,7 +168,7 @@ func TemplateJobRemoveOryaNamespace(namespace string) batchv1.Job {
 					Containers: []corev1.Container{
 						{
 							Name:  "job-remove-orya-namespace",
-							Image: "bitnami/kubectl:1.29.3",
+							Image: "bitnamisecure/kubectl:latest",
 							Command: []string{
 								"/bin/sh",
 								"-c",
@@ -212,7 +212,7 @@ func TemplateJobRemoveMutatingWebhook(mutateName, namespace string) batchv1.Job 
 					Containers: []corev1.Container{
 						{
 							Name:  "job-remove-orya-mutate-agent",
-							Image: "bitnami/kubectl:1.29.3",
+							Image: "bitnamisecure/kubectl:latest",
 							Command: []string{
 								"/bin/sh",
 								"-c",
@@ -256,7 +256,7 @@ func TemplateJobRemoveClusterRole(clusterRoleName, namespace string) batchv1.Job
 					Containers: []corev1.Container{
 						{
 							Name:  "job-remove-orya-cluster-role",
-							Image: "bitnami/kubectl:1.29.3",
+							Image: "bitnamisecure/kubectl:latest",
 							Command: []string{
 								"/bin/sh",
 								"-c",
@@ -300,7 +300,7 @@ func TemplateJobRemoveClusterRoleBinding(clusterRoleBindingName, namespace strin
 					Containers: []corev1.Container{
 						{
 							Name:  "job-remove-orya-cluster-role-binding",
-							Image: "bitnami/kubectl:1.29.3",
+							Image: "bitnamisecure/kubectl:latest",
 							Command: []string{
 								"/bin/sh",
 								"-c",
@@ -395,7 +395,7 @@ func TemplateJobUpdateDeploymentImage(namespace, deploymentName, containerName, 
 					Containers: []corev1.Container{
 						{
 							Name:  fmt.Sprintf("job-update-%s", containerName),
-							Image: "bitnami/kubectl:1.29.3",
+							Image: "bitnamisecure/kubectl:latest",
 							Command: []string{
 								"/bin/sh",
 								"-c",
