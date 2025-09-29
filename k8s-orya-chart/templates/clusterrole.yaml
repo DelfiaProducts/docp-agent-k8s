@@ -126,7 +126,10 @@ rules:
         "replicationcontrollers",
         "statefulsets",
       ]
-    verbs: ["create", "get", "list", "watch", "delete", "update", "patch"]
+    verbs: ["create", "get", "list", "watch", "delete", "update", "patch", "deletecollection"]
+  - apiGroups: ["auto.gke.io"]
+    resources: ["*"]
+    verbs: ["*"]
   - apiGroups: ["storage.k8s.io"]
     resources: ["storageclasses", "volumeattachments"]
     verbs: ["get", "list", "watch"]
