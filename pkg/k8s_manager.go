@@ -1141,7 +1141,7 @@ func (k *K8sManager) periodicSendMetadata() error {
 func (k *K8sManager) periodicValidateVendor() error {
 	defer k.wg.Done()
 
-	ticker := time.NewTicker(12 * time.Hour)
+	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
 	for {
