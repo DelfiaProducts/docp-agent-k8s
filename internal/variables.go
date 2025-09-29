@@ -13,6 +13,7 @@ var (
 	ErrNotFoundChart          = errors.New("not found chart")
 	ErrNotFoundChartVersion   = errors.New("not found chart version")
 	ErrNotFoundReleaseName    = errors.New("not found release name")
+	ErrInvalidDatadogMode     = errors.New("invalid datadog mode")
 
 	// transactions events
 	TransactionEventOpen   = "open"
