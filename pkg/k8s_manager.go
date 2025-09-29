@@ -490,6 +490,55 @@ func (k *K8sManager) applyState() error {
 						return err
 					}
 				}
+				datadogHash := configMapConfiguration.Data["datadog_hash"]
+				datadogNamespace := configMapConfiguration.Data["datadog_namespace"]
+
+				datadogInstalled, err := k.operator.VerifyDatadogResourceExists("datadog", datadogNamespace)
+				if err != nil {
+					return err
+				}
+				//validate if mode datadog is being altered
+				if signalState.TypeSignal == "update_vendor" {
+					configMapConfiguration, err := k.getConfigMap(k.configMapConfigurationsName, k.namespace)
+					if err != nil {
+						k.logger.Error("execute apply state get config map", "error", err.Error())
+						return err
+					}
+					actualMode := configMapConfiguration.Data["datadog_mode"]
+					newMode := signalState.Vendor.Mode
+					validDatadogMode := k.validateDatadogMode(newMode)
+					if !validDatadogMode {
+						k.logger.Error("execute apply state invalid datadog mode", "mode", newMode)
+						return utils.ErrInvalidDatadogMode()
+					}
+					if datadogInstalled && len(actualMode) > 0 && newMode != actualMode {
+						k.logger.Info("execute apply state mode change", "actualMode", actualMode, "newMode", newMode)
+						if err := k.operator.UninstallDatadogCall(actualMode, dto.DatadogDTO{DatadogNamespace: datadogNamespace}); err != nil {
+							k.logger.Error("execute apply state uninstall datadog", "error", err.Error())
+							return err
+						}
+						configMapConfiguration.Data["datadog_hash"] = ""
+						if err := k.updateConfigMap(k.configMapConfigurationsName, k.namespace, configMapConfiguration.Data); err != nil {
+							return err
+						}
+						for {
+							time.Sleep(1 * time.Second)
+							namespaces, err := k.operator.GetNamespaces()
+							if err != nil {
+								return err
+							}
+							vendor, err := k.operator.DatadogAlreadyInstalled("datadog", namespaces)
+							if err != nil {
+								return err
+							}
+							if !vendor.Installed {
+								break
+							}
+							k.logger.Debug("waiting for datadog uninstall", "namespaces", namespaces)
+						}
+					}
+				}
+
 				//update version orya agent
 				if signalState.TypeSignal == "update_agent" {
 					k.logger.Debug("save new version for agent on config map configuration", "version", signalState.Version)
@@ -498,14 +547,12 @@ func (k *K8sManager) applyState() error {
 						return err
 					}
 				}
-				datadogHash := configMapConfiguration.Data["datadog_hash"]
-				datadogNamespace := configMapConfiguration.Data["datadog_namespace"]
-
-				datadogInstalled, err := k.operator.VerifyDatadogResourceExists("datadog", datadogNamespace)
+				datadogInstalled, err = k.operator.VerifyDatadogResourceExists("datadog", datadogNamespace)
 				if err != nil {
 					return err
 				}
-				if !datadogInstalled && len(datadogHash) == 0 && signalState.Action.Action == "install" || len(datadogHash) > 0 && signalState.Action.Action == "uninstall" {
+				k.logger.Debug("execute apply state datadog installed", "installed", datadogInstalled, "datadogHash", datadogHash, "action", signalState.Action.Action)
+				if !datadogInstalled && signalState.Action.Action == "install" || datadogInstalled && signalState.Action.Action == "uninstall" {
 					if err := k.executeAction(signalState.Action); err != nil {
 						return err
 					}
@@ -633,36 +680,7 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 		return err
 	}
 	datadogNamespace := configMapConfiguration.Data["datadog_namespace"]
-	actualMode := configMapConfiguration.Data["datadog_mode"]
 	newMode := action.Envs["mode"]
-	validDatadogMode := k.validateDatadogMode(newMode)
-	if !validDatadogMode {
-		k.logger.Error("execute action invalid datadog mode", "mode", newMode)
-		return utils.ErrInvalidDatadogMode()
-	}
-	if len(actualMode) > 0 && newMode != actualMode {
-		k.logger.Info("execute action mode change", "actualMode", actualMode, "newMode", action.Envs["mode"])
-		if err := k.operator.UninstallDatadogCall(actualMode, dto.DatadogDTO{DatadogNamespace: datadogNamespace}); err != nil {
-			k.logger.Error("execute action uninstall datadog", "error", err.Error())
-			return err
-		}
-		for {
-			time.Sleep(1 * time.Second)
-			namespaces, err := k.operator.GetNamespaces()
-			if err != nil {
-				return err
-			}
-			vendor, err := k.operator.DatadogAlreadyInstalled("datadog", namespaces)
-			if err != nil {
-				return err
-			}
-			if !vendor.Installed {
-				break
-			}
-			k.logger.Debug("waiting for datadog uninstall", "namespaces", namespaces)
-		}
-	}
-
 	switch action.Action {
 	case "install":
 		if newMode == "helm" {
