@@ -192,3 +192,8 @@ func ErrNotFoundChartVersion() error {
 func ErrNotFoundReleaseName() error {
 	return internal.ErrNotFoundReleaseName
 }
+
+// ErrInvalidDatadogMode return error the invalid datadog mode
+func ErrInvalidDatadogMode() error {
+	return internal.ErrInvalidDatadogMode
+}
