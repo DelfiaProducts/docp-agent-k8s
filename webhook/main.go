@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/pkg"
-	"github.com/DelfiaProducts/docp-agent-k8s/utils"
+	"github.com/OryaHub/agent-k8s/pkg"
+	"github.com/OryaHub/agent-k8s/utils"
 )
 
 func main() {
@@ -15,6 +15,6 @@ func main() {
 	logger := utils.NewK8sLoggerText(os.Stdout)
 	k8sWebhook := pkg.NewK8sWebhook(port, logger)
 	if err := k8sWebhook.Start(); err != nil {
-		logger.Error("docp webhook", "error", err.Error())
+		logger.Error("orya webhook", "error", err.Error())
 	}
 }

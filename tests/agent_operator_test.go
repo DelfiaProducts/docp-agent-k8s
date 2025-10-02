@@ -4,11 +4,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/bdd"
-	"github.com/DelfiaProducts/docp-agent-k8s/dto"
-	"github.com/DelfiaProducts/docp-agent-k8s/mocks"
-	"github.com/DelfiaProducts/docp-agent-k8s/operators"
-	"github.com/DelfiaProducts/docp-agent-k8s/utils"
+	"github.com/OryaHub/agent-k8s/bdd"
+	"github.com/OryaHub/agent-k8s/dto"
+	"github.com/OryaHub/agent-k8s/mocks"
+	"github.com/OryaHub/agent-k8s/operators"
+	"github.com/OryaHub/agent-k8s/utils"
 )
 
 func TestNewAgentOperator(t *testing.T) {
@@ -97,8 +97,8 @@ func TestAgentOperatorInstallDatadogHelm(t *testing.T) {
 			s.Given("montar o dto pro datadog", func() {
 				datadogDto = dto.DatadogDTO{
 					Content:          mocks.MockDatadogHelm,
-					Namespace:        "docp-agent",
-					DatadogNamespace: "docp-agent",
+					Namespace:        "orya-agent",
+					DatadogNamespace: "orya-agent",
 					ApiKey:           "0df90e05ba755a4b57749d9c02e4cba1",
 					AppKey:           "de5f8836f91dcb6854748a3bfb2531ec0c937164",
 					Version:          "latest",
@@ -129,7 +129,7 @@ func TestAgentOperatorUninstallDatadogHelm(t *testing.T) {
 				bdd.AssertNoError(t, err, "configurado sem erro")
 			})
 			s.When("eu executo a desinstalação do Datadog via Helm", func() {
-				err = operator.UninstallDatadogHelm("datadog-agent", "docp-agent")
+				err = operator.UninstallDatadogHelm("datadog-agent", "orya-agent")
 			})
 			s.Then("deve retornar erro ou simular desinstalação", func(t *testing.T) {
 				if err != nil {
@@ -156,8 +156,8 @@ func TestAgentOperatorInstallDatadogOperator(t *testing.T) {
 			s.Given("montar o dto pro datadog", func() {
 				datadogDto = dto.DatadogDTO{
 					Content:          mocks.MockDatadogOperator,
-					Namespace:        "docp-agent",
-					DatadogNamespace: "docp-agent",
+					Namespace:        "orya-agent",
+					DatadogNamespace: "orya-agent",
 					ApiKey:           "0df90e05ba755a4b57749d9c02e4cba1",
 					AppKey:           "de5f8836f91dcb6854748a3bfb2531ec0c937164",
 					Version:          "latest",
@@ -188,7 +188,7 @@ func TestAgentOperatorUninstallDatadogOperator(t *testing.T) {
 				bdd.AssertNoError(t, err, "configurado sem erro")
 			})
 			s.When("eu executo a desinstalação do Datadog Operator", func() {
-				err = operator.UninstallDatadogOperator("datadog", "datadog-operator", "docp-agent")
+				err = operator.UninstallDatadogOperator("datadog", "datadog-operator", "orya-agent")
 			})
 			s.Then("deve retornar erro ou simular desinstalação", func(t *testing.T) {
 				if err != nil {
@@ -215,8 +215,8 @@ func TestAgentOperatorUpdateDatadogConfigOperator(t *testing.T) {
 			s.Given("montar o dto pro datadog", func() {
 				datadogDto = dto.DatadogDTO{
 					Content:          mocks.MockDatadogOperator,
-					Namespace:        "docp-agent",
-					DatadogNamespace: "docp-agent",
+					Namespace:        "orya-agent",
+					DatadogNamespace: "orya-agent",
 					ApiKey:           "0df90e05ba755a4b57749d9c02e4cba1",
 					AppKey:           "de5f8836f91dcb6854748a3bfb2531ec0c937164",
 					Version:          "latest",
@@ -250,8 +250,8 @@ func TestAgentOperatorUpdateDatadogConfigHelm(t *testing.T) {
 			s.Given("montar o dto pro datadog", func() {
 				datadogDto = dto.DatadogDTO{
 					Content:          mocks.MockDatadogHelm,
-					Namespace:        "docp-agent",
-					DatadogNamespace: "docp-agent",
+					Namespace:        "orya-agent",
+					DatadogNamespace: "orya-agent",
 					ApiKey:           "0df90e05ba755a4b57749d9c02e4cba1",
 					AppKey:           "de5f8836f91dcb6854748a3bfb2531ec0c937164",
 					Version:          "3.128.0",
@@ -284,8 +284,8 @@ func TestAgentOperatorValidateAllDatadogDeploymentSuccess(t *testing.T) {
 				bdd.AssertNoError(t, err, "configurado sem erro")
 				datadogDto = dto.DatadogDTO{
 					Content:          mocks.MockDatadogHelm,
-					Namespace:        "docp-agent",
-					DatadogNamespace: "docp-agent",
+					Namespace:        "orya-agent",
+					DatadogNamespace: "orya-agent",
 					ApiKey:           "0df90e05ba755a4b57749d9c02e4cba1",
 					AppKey:           "de5f8836f91dcb6854748a3bfb2531ec0c937164",
 					Version:          "latest",
@@ -294,8 +294,8 @@ func TestAgentOperatorValidateAllDatadogDeploymentSuccess(t *testing.T) {
 			s.Given("um DatadogDTO montado", func() {
 				datadogDto = dto.DatadogDTO{
 					Content:          mocks.MockDatadogHelm,
-					Namespace:        "docp-agent",
-					DatadogNamespace: "docp-agent",
+					Namespace:        "orya-agent",
+					DatadogNamespace: "orya-agent",
 					ApiKey:           "0df90e05ba755a4b57749d9c02e4cba1",
 					AppKey:           "de5f8836f91dcb6854748a3bfb2531ec0c937164",
 					Version:          "latest",
@@ -328,7 +328,7 @@ func TestAgentOperatorValidateAndRollbackDatadogIfNeeded(t *testing.T) {
 				bdd.AssertNoError(t, err, "configurado sem erro")
 			})
 			s.When("eu executo validação com rollback se necessário", func() {
-				err = operator.ValidateAndRollbackDatadogIfNeeded("helm", "docp-agent", "datadog-agent", 1)
+				err = operator.ValidateAndRollbackDatadogIfNeeded("helm", "orya-agent", "datadog-agent", 1)
 			})
 			s.Then("deve executar validação e tentar rollback se necessário", func(t *testing.T) {
 				if err != nil {

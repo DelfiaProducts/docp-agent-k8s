@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/dto"
-	"github.com/DelfiaProducts/docp-agent-k8s/utils"
+	"github.com/OryaHub/agent-k8s/dto"
+	"github.com/OryaHub/agent-k8s/utils"
 )
 
 // RegisterService is struct for register service
@@ -35,7 +35,7 @@ func (rs *RegisterService) Setup() error {
 		return err
 	}
 	rs.urlRegister = urlDomain
-	rs.configMapConfigurationsName = utils.GetDocpConfigMapConfigurationsName()
+	rs.configMapConfigurationsName = utils.GetOryaConfigMapConfigurationsName()
 	client := &http.Client{
 		Timeout: time.Second * 90,
 	}

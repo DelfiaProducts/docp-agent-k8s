@@ -1,10 +1,10 @@
 # my-k8s-app/values.yaml
 # Namespace onde a aplicação será implantada
-namespace: docp-agent
+namespace: orya-agent
 
 # Configurações do ServiceAccount e RBAC (aplicam-se a ambos os componentes)
 serviceAccount:
-  name: k8s-docp-svc-ac
+  name: k8s-orya-svc-ac
   create: true # Se true, o ServiceAccount, ClusterRole e ClusterRoleBinding serão criados
   # As permissões do ClusterRole abaixo são muito amplas.
   # RECOMENDA-SE FORTEMENTE REVISÁ-LAS E REDUZIR AO MÍNIMO NECESSÁRIO EM AMBIENTES DE PRODUÇÃO.

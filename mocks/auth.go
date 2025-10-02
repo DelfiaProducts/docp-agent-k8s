@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/dto"
-	"github.com/DelfiaProducts/docp-agent-k8s/utils"
+	"github.com/OryaHub/agent-k8s/dto"
+	"github.com/OryaHub/agent-k8s/utils"
 )
 
 type AuthMockResponse struct {
@@ -57,7 +57,7 @@ func (as *AuthService) Setup() error {
 		return err
 	}
 	as.urlAuth = urlDomain
-	as.configMapConfigurationsName = utils.GetDocpConfigMapConfigurationsName()
+	as.configMapConfigurationsName = utils.GetOryaConfigMapConfigurationsName()
 	client := &http.Client{
 		Timeout: time.Second * 90,
 	}

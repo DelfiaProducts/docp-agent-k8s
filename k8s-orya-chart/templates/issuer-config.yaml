@@ -1,4 +1,4 @@
-# k8s-docp-chart/templates/issuer-config.yaml
+# k8s-orya-chart/templates/issuer-config.yaml
 {{- if .Values.issuer.enabled }}
 apiVersion: cert-manager.io/v1
 kind: Issuer

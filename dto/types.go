@@ -15,11 +15,11 @@ type K8sConfigSignal struct {
 }
 
 type K8sConfigSignalAgents struct {
-	DocpAgent    K8sConfigSignalDocp         `json:"docp-agent"`
+	OryaAgent    K8sConfigSignalOrya         `json:"docp-agent"`
 	DatadogAgent K8sConfigSignalDatadogAgent `json:"datadog-agent"`
 }
 
-type K8sConfigSignalDocp struct {
+type K8sConfigSignalOrya struct {
 	Version string `json:"version"`
 }
 
@@ -195,7 +195,7 @@ type TransactionStatus struct {
 
 // AuthTokenClaims is struct for auth token claims
 type AuthTokenClaims struct {
-	DocpOrgId int    `json:"docp_org_id"`
+	OryaOrgId int    `json:"docp_org_id"`
 	ComputeId string `json:"compute_id"`
 }
 

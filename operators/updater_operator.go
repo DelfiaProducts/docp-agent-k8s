@@ -3,7 +3,7 @@ package operators
 import (
 	"sync"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/utils"
+	"github.com/OryaHub/agent-k8s/utils"
 	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -20,9 +20,9 @@ type UpdaterOperator struct {
 
 func NewUpdaterOperator(logger *utils.K8sLogger) *UpdaterOperator {
 	return &UpdaterOperator{
-		namespace:                   utils.GetDocpNamespace(),
-		configMapStateName:          utils.GetDocpConfiMapStateName(),
-		configMapConfigurationsName: utils.GetDocpConfigMapConfigurationsName(),
+		namespace:                   utils.GetOryaNamespace(),
+		configMapStateName:          utils.GetOryaConfiMapStateName(),
+		configMapConfigurationsName: utils.GetOryaConfigMapConfigurationsName(),
 		logger:                      logger,
 		helmClient:                  utils.NewHelmClient(logger),
 		kubeClient:                  utils.NewKubeClient(),
@@ -48,9 +48,9 @@ func (uo *UpdaterOperator) ValidateDeploymentSuccess(namespace, deploymentName s
 	return uo.helmClient.ValidateDeploymentSuccess(namespace, deploymentName)
 }
 
-// ValidateAllDocpDeploymentsSuccess valida se todos os deployments do DOCP tiveram sucesso
-func (uo *UpdaterOperator) ValidateAllDocpDeploymentsSuccess(namespace string) (bool, error) {
-	return uo.helmClient.ValidateAllDocpDeploymentsSuccess(namespace)
+// ValidateAllOryaDeploymentsSuccess valida se todos os deployments do DOCP tiveram sucesso
+func (uo *UpdaterOperator) ValidateAllOryaDeploymentsSuccess(namespace string) (bool, error) {
+	return uo.helmClient.ValidateAllOryaDeploymentsSuccess(namespace)
 }
 
 // GetLatestHelmVersion busca a versão mais atual do chart Helm do DOCP
@@ -75,9 +75,9 @@ func (uo *UpdaterOperator) GetReleaseByVersion(namespace, releaseName, version s
 	return latestRelease, nil
 }
 
-// UpgradeDocpHelmChart executa o upgrade do chart Helm do DOCP
-func (uo *UpdaterOperator) UpgradeDocpHelmChart(namespace, releaseName, repositoryURL, targetVersion string, values map[string]interface{}) error {
-	if err := uo.helmClient.UpgradeDocpHelmChart(namespace, releaseName, repositoryURL, targetVersion, values); err != nil {
+// UpgradeOryaHelmChart executa o upgrade do chart Helm do DOCP
+func (uo *UpdaterOperator) UpgradeOryaHelmChart(namespace, releaseName, repositoryURL, targetVersion string, values map[string]interface{}) error {
+	if err := uo.helmClient.UpgradeOryaHelmChart(namespace, releaseName, repositoryURL, targetVersion, values); err != nil {
 		uo.logger.Error("failed to upgrade helm chart", "error", err.Error())
 		return err
 	}
@@ -85,11 +85,11 @@ func (uo *UpdaterOperator) UpgradeDocpHelmChart(namespace, releaseName, reposito
 	return nil
 }
 
-// UpgradeDocpToLatestVersion busca a versão mais atual e executa o upgrade do DOCP
-func (m *UpdaterOperator) UpgradeDocpToLatestVersion(namespace, releaseName, repositoryURL string, values map[string]interface{}) error {
+// UpgradeOryaToLatestVersion busca a versão mais atual e executa o upgrade do DOCP
+func (m *UpdaterOperator) UpgradeOryaToLatestVersion(namespace, releaseName, repositoryURL string, values map[string]interface{}) error {
 	m.logger.Debug("upgrading DOCP to latest version", "namespace", namespace, "releaseName", releaseName)
 
-	if err := m.helmClient.UpgradeDocpToLatestVersion(namespace, releaseName, repositoryURL, values); err != nil {
+	if err := m.helmClient.UpgradeOryaToLatestVersion(namespace, releaseName, repositoryURL, values); err != nil {
 		m.logger.Error("failed to upgrade DOCP to latest version", "error", err.Error())
 		return err
 	}
@@ -97,9 +97,9 @@ func (m *UpdaterOperator) UpgradeDocpToLatestVersion(namespace, releaseName, rep
 	return nil
 }
 
-// RollbackDocpHelmChart executa o rollback do chart Helm do DOCP para a versão anterior
-func (m *UpdaterOperator) RollbackDocpHelmChart(namespace, releaseName string) error {
-	if err := m.helmClient.RollbackDocpHelmChart(namespace, releaseName); err != nil {
+// RollbackOryaHelmChart executa o rollback do chart Helm do DOCP para a versão anterior
+func (m *UpdaterOperator) RollbackOryaHelmChart(namespace, releaseName string) error {
+	if err := m.helmClient.RollbackOryaHelmChart(namespace, releaseName); err != nil {
 		m.logger.Error("failed to rollback DOCP helm chart", "error", err.Error())
 		return err
 	}
@@ -112,8 +112,8 @@ func (m *UpdaterOperator) ValidateAndRollbackIfNeeded(namespace, releaseName str
 	return m.helmClient.ValidateAndRollbackIfNeeded(namespace, releaseName, maxRetries)
 }
 
-// UpgradeDocpWithRollbackProtection executa upgrade com proteção de rollback automático
-func (m *UpdaterOperator) UpgradeDocpWithRollbackProtection(namespace, releaseName, repositoryURL, targetVersion string) error {
+// UpgradeOryaWithRollbackProtection executa upgrade com proteção de rollback automático
+func (m *UpdaterOperator) UpgradeOryaWithRollbackProtection(namespace, releaseName, repositoryURL, targetVersion string) error {
 	m.logger.Debug("upgrading DOCP with rollback protection",
 		"namespace", namespace,
 		"releaseName", releaseName)
@@ -132,7 +132,7 @@ func (m *UpdaterOperator) UpgradeDocpWithRollbackProtection(namespace, releaseNa
 	m.logger.Debug("latest release values retrieved successfully", "newValues", newValues)
 
 	// Executar o upgrade
-	err = m.UpgradeDocpHelmChart(namespace, releaseName, repositoryURL, upgradeVersion, newValues)
+	err = m.UpgradeOryaHelmChart(namespace, releaseName, repositoryURL, upgradeVersion, newValues)
 	if err != nil {
 		m.logger.Error("upgrade failed", "error", err.Error())
 		return err

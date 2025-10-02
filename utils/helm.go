@@ -249,9 +249,9 @@ func (hc *HelmClient) GetReleaseModeDatadog(namespace string) (string, error) {
 	return mode, ErrNotFoundReleaseName()
 }
 
-// UpgradeDocpHelmChart executa o upgrade do chart Helm do DOCP
-func (hc *HelmClient) UpgradeDocpHelmChart(namespace, releaseName, repositoryURL, targetVersion string, values map[string]interface{}) error {
-	chartName := fmt.Sprintf("%s-%s.tgz", "k8s-docp", targetVersion)
+// UpgradeOryaHelmChart executa o upgrade do chart Helm do DOCP
+func (hc *HelmClient) UpgradeOryaHelmChart(namespace, releaseName, repositoryURL, targetVersion string, values map[string]interface{}) error {
+	chartName := fmt.Sprintf("%s-%s.tgz", "k8s-orya", targetVersion)
 
 	hc.logger.Debug("upgrading DOCP helm chart",
 		"namespace", namespace,
@@ -326,8 +326,8 @@ func (hc *HelmClient) UpgradeDocpHelmChart(namespace, releaseName, repositoryURL
 	return nil
 }
 
-// UpgradeDocpToLatestVersion busca a versão mais atual e executa o upgrade do DOCP
-func (hc *HelmClient) UpgradeDocpToLatestVersion(namespace, releaseName, repositoryURL string, values map[string]interface{}) error {
+// UpgradeOryaToLatestVersion busca a versão mais atual e executa o upgrade do DOCP
+func (hc *HelmClient) UpgradeOryaToLatestVersion(namespace, releaseName, repositoryURL string, values map[string]interface{}) error {
 	hc.logger.Debug("upgrading DOCP to latest version", "namespace", namespace, "releaseName", releaseName)
 
 	// Buscar a versão mais atual
@@ -353,7 +353,7 @@ func (hc *HelmClient) UpgradeDocpToLatestVersion(namespace, releaseName, reposit
 
 	currentVersion := currentRelease.Chart.Metadata.Version
 	if currentVersion == latestVersion {
-		hc.logger.Debug("DOCP is already at the latest version",
+		hc.logger.Debug("ORYA is already at the latest version",
 			"currentVersion", currentVersion,
 			"latestVersion", latestVersion)
 		return nil
@@ -364,11 +364,11 @@ func (hc *HelmClient) UpgradeDocpToLatestVersion(namespace, releaseName, reposit
 		"latestVersion", latestVersion)
 
 	// Executar o upgrade para a versão mais atual
-	return hc.UpgradeDocpHelmChart(namespace, releaseName, repositoryURL, latestVersion, values)
+	return hc.UpgradeOryaHelmChart(namespace, releaseName, repositoryURL, latestVersion, values)
 }
 
-// RollbackDocpHelmChart executa o rollback do chart Helm do DOCP para a versão anterior
-func (hc *HelmClient) RollbackDocpHelmChart(namespace, releaseName string) error {
+// RollbackOryaHelmChart executa o rollback do chart Helm do DOCP para a versão anterior
+func (hc *HelmClient) RollbackOryaHelmChart(namespace, releaseName string) error {
 	hc.logger.Debug("rolling back DOCP helm chart",
 		"namespace", namespace,
 		"releaseName", releaseName)
@@ -628,12 +628,12 @@ func (hc *HelmClient) ValidateDeploymentSuccess(namespace, deploymentName string
 	return isSuccessful, nil
 }
 
-// ValidateAllDocpDeploymentsSuccess valida se todos os deployments do DOCP tiveram sucesso
-func (hc *HelmClient) ValidateAllDocpDeploymentsSuccess(namespace string) (bool, error) {
+// ValidateAllOryaDeploymentsSuccess valida se todos os deployments do DOCP tiveram sucesso
+func (hc *HelmClient) ValidateAllOryaDeploymentsSuccess(namespace string) (bool, error) {
 	deployments := []string{
-		GetDocpDeploymentName("manager"),
-		GetDocpDeploymentName("agent"),
-		GetDocpDeploymentName("webhook"),
+		GetOryaDeploymentName("manager"),
+		GetOryaDeploymentName("agent"),
+		GetOryaDeploymentName("webhook"),
 	}
 
 	for _, deploymentName := range deployments {
@@ -654,7 +654,7 @@ func (hc *HelmClient) ValidateAllDocpDeploymentsSuccess(namespace string) (bool,
 		}
 	}
 
-	hc.logger.Debug("all DOCP deployments validation successful", "namespace", namespace)
+	hc.logger.Debug("all ORYA deployments validation successful", "namespace", namespace)
 	return true, nil
 }
 
@@ -714,12 +714,12 @@ func (hc *HelmClient) ValidateAndRollbackIfNeeded(namespace, releaseName string,
 		hc.logger.Debug("validation attempt", "attempt", attempt, "maxRetries", maxRetries)
 
 		// Validar todos os deployments do DOCP
-		success, err := hc.ValidateAllDocpDeploymentsSuccess(namespace)
+		success, err := hc.ValidateAllOryaDeploymentsSuccess(namespace)
 		if err != nil {
 			hc.logger.Error("error during deployment validation", "error", err.Error(), "attempt", attempt)
 			if attempt == maxRetries {
 				hc.logger.Error("validation failed after max retries, initiating rollback")
-				return hc.RollbackDocpHelmChart(namespace, releaseName)
+				return hc.RollbackOryaHelmChart(namespace, releaseName)
 			}
 			// Aguardar antes da próxima tentativa
 			time.Sleep(time.Duration(attempt*30) * time.Second)
@@ -734,7 +734,7 @@ func (hc *HelmClient) ValidateAndRollbackIfNeeded(namespace, releaseName string,
 		hc.logger.Debug("deployment validation failed", "attempt", attempt)
 		if attempt == maxRetries {
 			hc.logger.Error("deployment validation failed after max retries, initiating rollback")
-			return hc.RollbackDocpHelmChart(namespace, releaseName)
+			return hc.RollbackOryaHelmChart(namespace, releaseName)
 		}
 
 		// Aguardar progressivamente mais tempo entre tentativas
@@ -765,7 +765,7 @@ func (hc *HelmClient) ValidateAndRollbackDatadogIfNeeded(mode, namespace, releas
 			hc.logger.Error("error during deployment validation", "error", err.Error(), "attempt", attempt)
 			if attempt == maxRetries {
 				hc.logger.Error("validation failed after max retries, initiating rollback")
-				return hc.RollbackDocpHelmChart(namespace, releaseName)
+				return hc.RollbackOryaHelmChart(namespace, releaseName)
 			}
 			// Aguardar antes da próxima tentativa
 			time.Sleep(time.Duration(attempt*30) * time.Second)
@@ -780,7 +780,7 @@ func (hc *HelmClient) ValidateAndRollbackDatadogIfNeeded(mode, namespace, releas
 		hc.logger.Debug("deployment validation failed", "attempt", attempt)
 		if attempt == maxRetries {
 			hc.logger.Error("deployment validation failed after max retries, initiating rollback")
-			return hc.RollbackDocpHelmChart(namespace, releaseName)
+			return hc.RollbackOryaHelmChart(namespace, releaseName)
 		}
 
 		// Aguardar progressivamente mais tempo entre tentativas

@@ -1,4 +1,4 @@
-# k8s-docp-chart/templates/mutatingwebhookconfiguration.yaml
+# k8s-orya-chart/templates/mutatingwebhookconfiguration.yaml
 {{- if and .Values.mutating.enabled .Values.mutating.service.enabled }}
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
@@ -20,7 +20,7 @@ webhooks:
     sideEffects: None
     clientConfig:
       service:
-        name: {{ include "k8s-docp.fullname" . }}-webhook-svc
+        name: {{ include "k8s-orya.fullname" . }}-webhook-svc
         namespace: {{ .Values.namespace }} 
         path: "/"
       caBundle: ""

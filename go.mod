@@ -1,4 +1,4 @@
-module github.com/DelfiaProducts/docp-agent-k8s
+module github.com/OryaHub/agent-k8s
 
 go 1.24.6
 

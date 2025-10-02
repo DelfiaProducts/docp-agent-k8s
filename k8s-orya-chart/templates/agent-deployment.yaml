@@ -1,23 +1,23 @@
-# k8s-docp-chart/templates/agent-deployment.yaml
+# k8s-orya-chart/templates/agent-deployment.yaml
 {{- if .Values.agent.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "k8s-docp.fullname" . }}-agent
+  name: {{ include "k8s-orya.fullname" . }}-agent
   namespace: {{ .Values.namespace }}
   labels:
-    {{- include "k8s-docp.labels" . | nindent 4 }}
+    {{- include "k8s-orya.labels" . | nindent 4 }}
     app.kubernetes.io/component: agent # Label específico do componente
 spec:
   replicas: {{ .Values.agent.replicaCount }}
   selector:
     matchLabels:
-      {{- include "k8s-docp.selectorLabels" . | nindent 6 }}
+      {{- include "k8s-orya.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/component: agent
   template:
     metadata:
       labels:
-        {{- include "k8s-docp.selectorLabels" . | nindent 8 }}
+        {{- include "k8s-orya.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: agent
     spec:
       serviceAccountName: {{ .Values.serviceAccount.name }} # Compartilha o ServiceAccount

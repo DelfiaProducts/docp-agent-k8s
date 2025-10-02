@@ -3,7 +3,7 @@ package utils
 import (
 	"context"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/dto"
+	"github.com/OryaHub/agent-k8s/dto"
 	"github.com/oklog/ulid/v2"
 )
 

@@ -1,6 +1,6 @@
 package interfaces
 
-import "github.com/DelfiaProducts/docp-agent-k8s/dto"
+import "github.com/OryaHub/agent-k8s/dto"
 
 // IK8sInterface is interface for agents
 type IK8sInterface interface {

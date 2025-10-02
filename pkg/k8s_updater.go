@@ -4,8 +4,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/operators"
-	"github.com/DelfiaProducts/docp-agent-k8s/utils"
+	"github.com/OryaHub/agent-k8s/operators"
+	"github.com/OryaHub/agent-k8s/utils"
 )
 
 // K8sUpdater is struct for updating the k8s
@@ -28,9 +28,9 @@ func NewK8sUpdater(logger *utils.K8sLogger) *K8sUpdater {
 		logger:                      logger,
 		wg:                          &sync.WaitGroup{},
 		done:                        make(chan struct{}),
-		namespace:                   utils.GetDocpNamespace(),
-		configMapStateName:          utils.GetDocpConfiMapStateName(),
-		configMapConfigurationsName: utils.GetDocpConfigMapConfigurationsName(),
+		namespace:                   utils.GetOryaNamespace(),
+		configMapStateName:          utils.GetOryaConfiMapStateName(),
+		configMapConfigurationsName: utils.GetOryaConfigMapConfigurationsName(),
 		retryRegister:               0,
 		maxRetry:                    10,
 	}
@@ -53,13 +53,13 @@ func (k *K8sUpdater) ExecuteUpdate() error {
 	releaseName := os.Getenv("RELEASE_NAME")
 	repositoryUrl := os.Getenv("REPOSITORY_URL")
 	targetVersion := os.Getenv("TARGET_VERSION")
-	k.logger.Debug("upgrading docp helm", "namespace", namespace, "releaseName", releaseName, "repositoryUrl", repositoryUrl, "targetVersion", targetVersion)
-	if err := k.operator.UpgradeDocpWithRollbackProtection(namespace, releaseName, repositoryUrl, targetVersion); err != nil {
-		k.logger.Error("failed to upgrade docp", "error", err.Error())
+	k.logger.Debug("upgrading orya helm", "namespace", namespace, "releaseName", releaseName, "repositoryUrl", repositoryUrl, "targetVersion", targetVersion)
+	if err := k.operator.UpgradeOryaWithRollbackProtection(namespace, releaseName, repositoryUrl, targetVersion); err != nil {
+		k.logger.Error("failed to upgrade orya", "error", err.Error())
 		return err
 	}
 	//get config map configurations
-	configurations, err := k.operator.GetConfigMap(utils.GetDocpConfigMapConfigurationsName(), namespace)
+	configurations, err := k.operator.GetConfigMap(utils.GetOryaConfigMapConfigurationsName(), namespace)
 	if err != nil {
 		k.logger.Error("failed to get config map", "error", err.Error())
 		return err
@@ -67,7 +67,7 @@ func (k *K8sUpdater) ExecuteUpdate() error {
 	configurations.Data["auto_update_running"] = "false"
 	configurations.Data["version"] = targetVersion
 
-	if err := k.operator.UpdateConfigMap(utils.GetDocpConfigMapConfigurationsName(), namespace, configurations.Data); err != nil {
+	if err := k.operator.UpdateConfigMap(utils.GetOryaConfigMapConfigurationsName(), namespace, configurations.Data); err != nil {
 		k.logger.Error("failed to update config map", "error", err.Error())
 		return err
 	}
@@ -77,7 +77,7 @@ func (k *K8sUpdater) ExecuteUpdate() error {
 
 // Start execute running the updater
 func (k *K8sUpdater) Start() error {
-	k.logger.Info("Docp Updater Kubernetes Running")
+	k.logger.Info("Orya Updater Kubernetes Running")
 	if err := k.Initialize(); err != nil {
 		return err
 	}

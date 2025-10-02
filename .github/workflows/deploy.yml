@@ -16,7 +16,7 @@ env:
   REPO_K8S_MANAGER: 'k8s-manager'
   REPO_K8S_UPDATER: 'k8s-updater'
   REPO_K8S_WEBHOOK: 'k8s-webhook'
-  K8S_DOCP_CHART: 'k8s-docp-chart/'
+  K8S_ORYA_CHART: 'k8s-orya-chart/'
   TFSTATE_S3_PATH: ${{ secrets.TFSTATE_S3_PATH }}
 
 jobs:
@@ -111,14 +111,14 @@ jobs:
           echo "Verificando estrutura do tfstate..."
           jq '.outputs.bucket_ids' resources_publics.tfstate
           echo "Extraindo valor do docp-agent..."
-          docp_agent=$(jq -r '.outputs.public_bucket_ids.value."docp-agent"' resources_publics.tfstate)
-          echo "Valor extraído: $docp_agent"
-          echo "docp_agent=$docp_agent" >> $GITHUB_ENV
+          orya_agent=$(jq -r '.outputs.public_bucket_ids.value."docp-agent"' resources_publics.tfstate)
+          echo "Valor extraído: $orya_agent"
+          echo "orya_agent=$orya_agent" >> $GITHUB_ENV
       
       - name: Baixar index.yaml existente do bucket (se existir)
         run: |
-          echo "Tentando baixar index.yaml existente do bucket ${{ env.docp_agent }}..."
-          if aws s3 cp s3://${{ env.docp_agent }}/index.yaml ./index.yaml 2>/dev/null; then
+          echo "Tentando baixar index.yaml existente do bucket ${{ env.orya_agent }}..."
+          if aws s3 cp s3://${{ env.orya_agent }}/index.yaml ./index.yaml 2>/dev/null; then
             echo "index.yaml encontrado e baixado com sucesso do bucket"
             echo "Verificando conteúdo do index.yaml existente:"
             ls -la index.yaml
@@ -132,7 +132,7 @@ jobs:
       - name: Atualizar version do Chart.yaml
         run: |
           echo "Atualizando version no Chart.yaml para ${{ github.ref_name }}..."
-          cd ${{ env.K8S_DOCP_CHART }}
+          cd ${{ env.K8S_ORYA_CHART }}
           
           # Atualizar version no Chart.yaml
           if [ -f "Chart.yaml" ]; then
@@ -140,14 +140,14 @@ jobs:
             echo "Version atualizada no Chart.yaml:"
             grep "^version:" Chart.yaml
           else
-            echo "Chart.yaml não encontrado em ${{ env.K8S_DOCP_CHART }}"
+            echo "Chart.yaml não encontrado em ${{ env.K8S_ORYA_CHART }}"
             exit 1
           fi
 
       - name: Atualizar tags e repositórios no values.yaml
         run: |
           echo "Atualizando tags e repositórios no values.yaml para ${{ github.ref_name }}..."
-          cd ${{ env.K8S_DOCP_CHART }}
+          cd ${{ env.K8S_ORYA_CHART }}
           
           echo "=== URIs DAS IMAGENS CAPTURADAS ==="
           echo "Agent URI: ${{ env.agent_image_uri }}"
@@ -250,14 +250,14 @@ jobs:
             sed -n '/^updater:/,/^[a-zA-Z]/p' values.yaml | grep -E "(repository:|tag:)" || echo "Seção updater não encontrada"
             
           else
-            echo "values.yaml não encontrado em ${{ env.K8S_DOCP_CHART }}"
+            echo "values.yaml não encontrado em ${{ env.K8S_ORYA_CHART }}"
             exit 1
           fi
 
       - name: Validar mudanças nos arquivos
         run: |
           echo "=== VALIDANDO MUDANÇAS ==="
-          cd ${{ env.K8S_DOCP_CHART }}
+          cd ${{ env.K8S_ORYA_CHART }}
           
           echo "Chart.yaml version:"
           grep "^version:" Chart.yaml
@@ -286,7 +286,7 @@ jobs:
       - name: Gerar package do Chart e atualizar index.yaml
         run: |
           echo "Gerando package do Chart..."
-          cd ${{ env.K8S_DOCP_CHART }}
+          cd ${{ env.K8S_ORYA_CHART }}
           helm package . 
           echo "Package gerado:"
           ls -l *.tgz
@@ -301,22 +301,22 @@ jobs:
             cat index.yaml
             echo ""
             echo "Executando merge do index.yaml com nova versão..."
-            helm repo index ${{ env.K8S_DOCP_CHART }} --url https://${{ env.docp_agent }}.s3.us-east-1.amazonaws.com --merge index.yaml
+            helm repo index ${{ env.K8S_ORYA_CHART }} --url https://${{ env.orya_agent }}.s3.us-east-1.amazonaws.com --merge index.yaml
             echo "Merge concluído!"
           else
             echo "Criando novo index.yaml..."
-            helm repo index ${{ env.K8S_DOCP_CHART }} --url https://${{ env.docp_agent }}.s3.us-east-1.amazonaws.com
+            helm repo index ${{ env.K8S_ORYA_CHART }} --url https://${{ env.orya_agent }}.s3.us-east-1.amazonaws.com
           fi
           
           echo "=== CONTEÚDO FINAL DO INDEX.YAML ==="
-          cat ${{ env.K8S_DOCP_CHART }}/index.yaml
+          cat ${{ env.K8S_ORYA_CHART }}/index.yaml
           
           echo "Fazendo upload do package e index.yaml atualizado para o bucket..."
-          aws s3 cp ${{ env.K8S_DOCP_CHART }}/*.tgz s3://${{ env.docp_agent }}/
-          aws s3 cp ${{ env.K8S_DOCP_CHART }}/index.yaml s3://${{ env.docp_agent }}/
+          aws s3 cp ${{ env.K8S_ORYA_CHART }}/*.tgz s3://${{ env.orya_agent }}/
+          aws s3 cp ${{ env.K8S_ORYA_CHART }}/index.yaml s3://${{ env.orya_agent }}/
           
           echo "Upload concluído. Verificando itens no bucket:"
-          aws s3 ls s3://${{ env.docp_agent }}/
+          aws s3 ls s3://${{ env.orya_agent }}/
 
       - name: Gerar/Atualizar index_k8s.json com versões
         run: |
@@ -324,7 +324,7 @@ jobs:
           RELEASE_TAG="${{ github.ref_name }}"
           
           # Tentar baixar index_k8s.json existente do bucket
-          if aws s3 cp s3://${{ env.docp_agent }}/index_k8s.json ./index_k8s.json 2>/dev/null; then
+          if aws s3 cp s3://${{ env.orya_agent }}/index_k8s.json ./index_k8s.json 2>/dev/null; then
             echo "index_k8s.json encontrado no bucket, fazendo backup e atualizando..."
             cp index_k8s.json index_k8s.json.backup
             
@@ -385,9 +385,9 @@ jobs:
           fi
           
           echo "=== FAZENDO UPLOAD DO index_k8s.json ==="
-          aws s3 cp index_k8s.json s3://${{ env.docp_agent }}/
+          aws s3 cp index_k8s.json s3://${{ env.orya_agent }}/
           
           echo "Upload do index_k8s.json concluído!"
           echo "Verificando arquivo no bucket:"
-          aws s3 ls s3://${{ env.docp_agent }}/index_k8s.json
+          aws s3 ls s3://${{ env.orya_agent }}/index_k8s.json
 

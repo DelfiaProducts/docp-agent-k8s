@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/bdd"
-	"github.com/DelfiaProducts/docp-agent-k8s/operators"
-	"github.com/DelfiaProducts/docp-agent-k8s/utils"
+	"github.com/OryaHub/agent-k8s/bdd"
+	"github.com/OryaHub/agent-k8s/operators"
+	"github.com/OryaHub/agent-k8s/utils"
 	"helm.sh/helm/v3/pkg/release"
 )
 
@@ -111,7 +111,7 @@ func TestValidateDeploymentSuccess(t *testing.T) {
 				bdd.AssertNoError(t, err, "falha ao configurar UpdaterOperator")
 			})
 			s.When("eu valido um deployment inexistente", func() {
-				success, err = updaterOperator.ValidateDeploymentSuccess("docp-agent", "manager")
+				success, err = updaterOperator.ValidateDeploymentSuccess("orya-agent", "manager")
 			})
 			s.Then("deve retornar false sem erro ou com erro de conexão", func(t *testing.T) {
 				if err != nil {
@@ -125,7 +125,7 @@ func TestValidateDeploymentSuccess(t *testing.T) {
 	})
 }
 
-func TestValidateAllDocpDeploymentsSuccess(t *testing.T) {
+func TestValidateAllOryaDeploymentsSuccess(t *testing.T) {
 	bdd.Feature(t, "Validar sucesso de todos os deployments DOCP", func(t *testing.T, scenario func(description string, steps func(s *bdd.Scenario))) {
 		scenario("validar todos os deployments DOCP", func(s *bdd.Scenario) {
 			var success bool
@@ -139,7 +139,7 @@ func TestValidateAllDocpDeploymentsSuccess(t *testing.T) {
 				_ = updaterOperator.Setup()
 			})
 			s.When("eu valido todos os deployments DOCP", func() {
-				success, err = updaterOperator.ValidateAllDocpDeploymentsSuccess("docp-agent")
+				success, err = updaterOperator.ValidateAllOryaDeploymentsSuccess("orya-agent")
 			})
 			s.Then("deve executar sem erro crítico", func(t *testing.T) {
 				if err != nil {
@@ -162,7 +162,7 @@ func TestValidateAllDocpDeploymentsSuccess(t *testing.T) {
 				_ = updaterOperator.Setup()
 			})
 			s.When("eu valido deployments em namespace inexistente", func() {
-				success, err = updaterOperator.ValidateAllDocpDeploymentsSuccess("namespace-inexistente")
+				success, err = updaterOperator.ValidateAllOryaDeploymentsSuccess("namespace-inexistente")
 			})
 			s.Then("deve retornar false ou erro de conexão", func(t *testing.T) {
 				if err != nil {
@@ -187,7 +187,7 @@ func TestUpdaterOperatorGetLatestHelmVersion(t *testing.T) {
 				updaterOperator = operators.NewUpdaterOperator(logger)
 			})
 			s.When("eu busco a versão mais atual", func() {
-				version, err = updaterOperator.GetLatestHelmVersion("docp-agent", "docp-agent")
+				version, err = updaterOperator.GetLatestHelmVersion("orya-agent", "orya-agent")
 			})
 			s.Then("deve executar a busca", func(t *testing.T) {
 				if err != nil {
@@ -201,7 +201,7 @@ func TestUpdaterOperatorGetLatestHelmVersion(t *testing.T) {
 	})
 }
 
-func TestUpdaterOperatorUpgradeDocpHelmChart(t *testing.T) {
+func TestUpdaterOperatorUpgradeOryaHelmChart(t *testing.T) {
 	bdd.Feature(t, "Executar upgrade do chart Helm DOCP", func(t *testing.T, scenario func(description string, steps func(s *bdd.Scenario))) {
 		scenario("tentar upgrade com parâmetros válidos", func(s *bdd.Scenario) {
 			var err error
@@ -233,7 +233,7 @@ func TestUpdaterOperatorUpgradeDocpHelmChart(t *testing.T) {
 						},
 					},
 				}
-				err = updaterOperator.UpgradeDocpHelmChart("docp-agent", "docp-agent", utils.GetHelmRepository(), "0.1.0", values)
+				err = updaterOperator.UpgradeOryaHelmChart("orya-agent", "orya-agent", utils.GetHelmRepository(), "0.1.0", values)
 			})
 			s.Then("deve executar sem erro crítico", func(t *testing.T) {
 				if err != nil {
@@ -245,7 +245,7 @@ func TestUpdaterOperatorUpgradeDocpHelmChart(t *testing.T) {
 	})
 }
 
-func TestUpdaterOperatorUpgradeDocpToLatestVersion(t *testing.T) {
+func TestUpdaterOperatorUpgradeOryaToLatestVersion(t *testing.T) {
 	bdd.Feature(t, "Executar upgrade do DOCP para versão mais atual", func(t *testing.T, scenario func(description string, steps func(s *bdd.Scenario))) {
 		scenario("upgrade para versão mais atual", func(s *bdd.Scenario) {
 			var err error
@@ -261,16 +261,16 @@ func TestUpdaterOperatorUpgradeDocpToLatestVersion(t *testing.T) {
 				bdd.AssertNoError(t, err, "falha ao configurar UpdaterOperator")
 			})
 			s.Given("que eu tenho a ultima versão do chart", func() {
-				latestVersion, err = updaterOperator.GetLatestHelmVersion("docp-agent", "docp-agent")
+				latestVersion, err = updaterOperator.GetLatestHelmVersion("orya-agent", "orya-agent")
 				bdd.AssertNoError(t, err, "falha ao pegar ultima versão do chart")
 			})
 			s.Given("que eu tenho a versão mais atual do release", func() {
-				latestRelease, err = updaterOperator.GetReleaseByVersion("docp-agent", "docp-agent", latestVersion)
+				latestRelease, err = updaterOperator.GetReleaseByVersion("orya-agent", "orya-agent", latestVersion)
 				bdd.AssertNoError(t, err, "falha ao pegar ultima release")
 			})
 			s.When("eu executo upgrade para versão mais atual", func() {
 				values := latestRelease.Config
-				err = updaterOperator.UpgradeDocpToLatestVersion("docp-agent", "docp-agent", utils.GetHelmRepository(), values)
+				err = updaterOperator.UpgradeOryaToLatestVersion("orya-agent", "orya-agent", utils.GetHelmRepository(), values)
 			})
 			s.Then("deve executar sem erro crítico", func(t *testing.T) {
 				if err != nil {
@@ -282,7 +282,7 @@ func TestUpdaterOperatorUpgradeDocpToLatestVersion(t *testing.T) {
 	})
 }
 
-func TestUpdaterOperatorRollbackDocpHelmChart(t *testing.T) {
+func TestUpdaterOperatorRollbackOryaHelmChart(t *testing.T) {
 	bdd.Feature(t, "Executar rollback do chart Helm DOCP", func(t *testing.T, scenario func(description string, steps func(s *bdd.Scenario))) {
 		scenario("rollback para revisão anterior", func(s *bdd.Scenario) {
 			var err error
@@ -293,7 +293,7 @@ func TestUpdaterOperatorRollbackDocpHelmChart(t *testing.T) {
 				updaterOperator = operators.NewUpdaterOperator(logger)
 			})
 			s.When("eu executo rollback para revisão anterior", func() {
-				err = updaterOperator.RollbackDocpHelmChart("docp-agent", "docp-agent")
+				err = updaterOperator.RollbackOryaHelmChart("orya-agent", "orya-agent")
 			})
 			s.Then("deve executar sem erro crítico", func(t *testing.T) {
 				if err != nil {
@@ -318,7 +318,7 @@ func TestValidateAndRollbackIfNeeded(t *testing.T) {
 				_ = updaterOperator.Setup()
 			})
 			s.When("eu executo validação com rollback se necessário", func() {
-				err = updaterOperator.ValidateAndRollbackIfNeeded("docp-agent", "docp-agent", 1)
+				err = updaterOperator.ValidateAndRollbackIfNeeded("orya-agent", "orya-agent", 1)
 			})
 			s.Then("deve executar validação", func(t *testing.T) {
 				if err != nil {
@@ -338,7 +338,7 @@ func TestValidateAndRollbackIfNeeded(t *testing.T) {
 				_ = updaterOperator.Setup()
 			})
 			s.When("eu executo validação com maxRetries zero", func() {
-				err = updaterOperator.ValidateAndRollbackIfNeeded("docp-agent", "docp-agent", 0)
+				err = updaterOperator.ValidateAndRollbackIfNeeded("orya-agent", "orya-agent", 0)
 			})
 			s.Then("deve completar sem tentativas", func(t *testing.T) {
 				// Com maxRetries 0, não deve fazer tentativas
@@ -348,7 +348,7 @@ func TestValidateAndRollbackIfNeeded(t *testing.T) {
 	})
 }
 
-func TestUpgradeDocpWithRollbackProtection(t *testing.T) {
+func TestUpgradeOryaWithRollbackProtection(t *testing.T) {
 	bdd.Feature(t, "Executar upgrade com proteção de rollback", func(t *testing.T, scenario func(description string, steps func(s *bdd.Scenario))) {
 		scenario("upgrade para versão especifica", func(s *bdd.Scenario) {
 			var err error
@@ -362,7 +362,7 @@ func TestUpgradeDocpWithRollbackProtection(t *testing.T) {
 				bdd.AssertNoError(t, err, "falha ao configurar UpdaterOperator")
 			})
 			s.When("eu executo upgrade para versão especifica", func() {
-				err = updaterOperator.UpgradeDocpWithRollbackProtection("docp-agent", "docp-agent", utils.GetHelmRepository(), "0.1.0")
+				err = updaterOperator.UpgradeOryaWithRollbackProtection("orya-agent", "orya-agent", utils.GetHelmRepository(), "0.1.0")
 			})
 			s.Then("deve buscar versão mais atual e executar upgrade", func(t *testing.T) {
 				if err != nil {

@@ -1,10 +1,10 @@
-docp:
-  name: docp-api-secret
+orya:
+  name: orya-api-secret
   cluster_name: ""
-  docp_site:
+  orya_site:
     url: "https://msapi.sandbox.docphq.tech"
   data:
-    DOCP_API_KEY: docp-api-client-here  
+    ORYA_API_KEY: orya-api-client-here  
     TAGS:
       - app:dev
       - service:hml

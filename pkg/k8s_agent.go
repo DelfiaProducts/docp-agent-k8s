@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/dto"
-	"github.com/DelfiaProducts/docp-agent-k8s/operators"
-	"github.com/DelfiaProducts/docp-agent-k8s/utils"
+	"github.com/OryaHub/agent-k8s/dto"
+	"github.com/OryaHub/agent-k8s/operators"
+	"github.com/OryaHub/agent-k8s/utils"
 )
 
 // K8sAgent is struct for agent the k8s
@@ -174,7 +174,7 @@ func (k *K8sAgent) Listen() error {
 }
 
 func (k *K8sAgent) Start() error {
-	k.logger.Info("Docp Agent Kubernetes Running", "port", k.port)
+	k.logger.Info("Orya Agent Kubernetes Running", "port", k.port)
 	if err := k.Initialize(); err != nil {
 		return err
 	}

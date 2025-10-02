@@ -11,11 +11,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/DelfiaProducts/docp-agent-k8s/dto"
-	"github.com/DelfiaProducts/docp-agent-k8s/internal"
-	"github.com/DelfiaProducts/docp-agent-k8s/operators"
-	"github.com/DelfiaProducts/docp-agent-k8s/templates"
-	"github.com/DelfiaProducts/docp-agent-k8s/utils"
+	"github.com/OryaHub/agent-k8s/dto"
+	"github.com/OryaHub/agent-k8s/internal"
+	"github.com/OryaHub/agent-k8s/operators"
+	"github.com/OryaHub/agent-k8s/templates"
+	"github.com/OryaHub/agent-k8s/utils"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -41,9 +41,9 @@ func NewK8sManager(logger *utils.K8sLogger) *K8sManager {
 		logger:                      logger,
 		wg:                          &sync.WaitGroup{},
 		done:                        make(chan struct{}),
-		namespace:                   utils.GetDocpNamespace(),
-		configMapStateName:          utils.GetDocpConfiMapStateName(),
-		configMapConfigurationsName: utils.GetDocpConfigMapConfigurationsName(),
+		namespace:                   utils.GetOryaNamespace(),
+		configMapStateName:          utils.GetOryaConfiMapStateName(),
+		configMapConfigurationsName: utils.GetOryaConfigMapConfigurationsName(),
 		retryRegister:               0,
 		maxRetry:                    10,
 		delay:                       time.Second * 1,
@@ -107,7 +107,7 @@ func (k *K8sManager) initializeConfigMaps() error {
 		"auto_update_running": "false",
 		"signal_hash":         "",
 		"version":             os.Getenv("VERSION"),
-		"api_key":             os.Getenv("DOCP_API_KEY"),
+		"api_key":             os.Getenv("ORYA_API_KEY"),
 		"tags":                os.Getenv("TAGS"),
 	}
 	if err := k.createConfigMap(k.configMapConfigurationsName, k.namespace, dataConfigurations); err != nil {
@@ -215,7 +215,7 @@ func (k *K8sManager) handlerRegister() error {
 					if err != nil {
 						return err
 					}
-					configMapConfiguration.Data["docp_org_id"] = strconv.Itoa(claims.DocpOrgId)
+					configMapConfiguration.Data["org_id"] = strconv.Itoa(claims.OryaOrgId)
 					configMapConfiguration.Data["compute_id"] = claims.ComputeId
 				}
 				configMapConfiguration.Data["registered"] = "true"
@@ -265,7 +265,7 @@ func (k *K8sManager) handlerRegister() error {
 			}
 		}
 	} else {
-		k.logger.Info("handler register", "error", utils.ErrorDocpApiKeyNotFound().Error())
+		k.logger.Info("handler register", "error", utils.ErrorOryaApiKeyNotFound().Error())
 	}
 
 	return nil
@@ -490,14 +490,6 @@ func (k *K8sManager) applyState() error {
 						return err
 					}
 				}
-				//update version docp agent
-				if signalState.TypeSignal == "update_agent" {
-					k.logger.Debug("save new version for agent on config map configuration", "version", signalState.Version)
-					configMapConfiguration.Data["version"] = signalState.Version
-					if err := k.updateConfigMap(k.configMapConfigurationsName, k.namespace, configMapConfiguration.Data); err != nil {
-						return err
-					}
-				}
 				datadogHash := configMapConfiguration.Data["datadog_hash"]
 				datadogNamespace := configMapConfiguration.Data["datadog_namespace"]
 
@@ -505,7 +497,62 @@ func (k *K8sManager) applyState() error {
 				if err != nil {
 					return err
 				}
-				if !datadogInstalled && len(datadogHash) == 0 && signalState.Action.Action == "install" || len(datadogHash) > 0 && signalState.Action.Action == "uninstall" {
+				//validate if mode datadog is being altered
+				if signalState.TypeSignal == "update_vendor" {
+					configMapConfiguration, err := k.getConfigMap(k.configMapConfigurationsName, k.namespace)
+					if err != nil {
+						k.logger.Error("execute apply state get config map", "error", err.Error())
+						return err
+					}
+					actualMode := configMapConfiguration.Data["datadog_mode"]
+					newMode := signalState.Vendor.Mode
+					validDatadogMode := k.validateDatadogMode(newMode)
+					if !validDatadogMode {
+						k.logger.Error("execute apply state invalid datadog mode", "mode", newMode)
+						return utils.ErrInvalidDatadogMode()
+					}
+					if datadogInstalled && len(actualMode) > 0 && newMode != actualMode {
+						k.logger.Info("execute apply state mode change", "actualMode", actualMode, "newMode", newMode)
+						if err := k.operator.UninstallDatadogCall(actualMode, dto.DatadogDTO{DatadogNamespace: datadogNamespace}); err != nil {
+							k.logger.Error("execute apply state uninstall datadog", "error", err.Error())
+							return err
+						}
+						configMapConfiguration.Data["datadog_hash"] = ""
+						if err := k.updateConfigMap(k.configMapConfigurationsName, k.namespace, configMapConfiguration.Data); err != nil {
+							return err
+						}
+						for {
+							time.Sleep(1 * time.Second)
+							namespaces, err := k.operator.GetNamespaces()
+							if err != nil {
+								return err
+							}
+							vendor, err := k.operator.DatadogAlreadyInstalled("datadog", namespaces)
+							if err != nil {
+								return err
+							}
+							if !vendor.Installed {
+								break
+							}
+							k.logger.Debug("waiting for datadog uninstall", "namespaces", namespaces)
+						}
+					}
+				}
+
+				//update version orya agent
+				if signalState.TypeSignal == "update_agent" {
+					k.logger.Debug("save new version for agent on config map configuration", "version", signalState.Version)
+					configMapConfiguration.Data["version"] = signalState.Version
+					if err := k.updateConfigMap(k.configMapConfigurationsName, k.namespace, configMapConfiguration.Data); err != nil {
+						return err
+					}
+				}
+				datadogInstalled, err = k.operator.VerifyDatadogResourceExists("datadog", datadogNamespace)
+				if err != nil {
+					return err
+				}
+				k.logger.Debug("execute apply state datadog installed", "installed", datadogInstalled, "datadogHash", datadogHash, "action", signalState.Action.Action)
+				if !datadogInstalled && signalState.Action.Action == "install" || datadogInstalled && signalState.Action.Action == "uninstall" {
 					if err := k.executeAction(signalState.Action); err != nil {
 						return err
 					}
@@ -579,10 +626,10 @@ func (k *K8sManager) getSignal(data []byte) ([]dto.K8sSignal, error) {
 			}
 
 		}
-		if len(k8sSignal.Agents.DocpAgent.Version) > 0 {
+		if len(k8sSignal.Agents.OryaAgent.Version) > 0 {
 			signal := dto.K8sSignal{}
 			signal.TypeSignal = "update_agent"
-			signal.Version = k8sSignal.Agents.DocpAgent.Version
+			signal.Version = k8sSignal.Agents.OryaAgent.Version
 			signals = append(signals, signal)
 		}
 	} else if signalType == "debug-session" {
@@ -612,6 +659,16 @@ func (k *K8sManager) executeSignal(signal dto.K8sSignal, datadogNamespace string
 	return nil
 }
 
+// validateDatadogMode validate datadog mode
+func (k *K8sManager) validateDatadogMode(mode string) bool {
+	switch mode {
+	case "helm", "operator":
+		return true
+	default:
+		return false
+	}
+}
+
 func (k *K8sManager) executeAction(action dto.K8sAction) error {
 	transaction := utils.NewTransactionStatus()
 	ctx := context.WithValue(context.Background(), dto.ContextTransactionStatus, transaction)
@@ -623,9 +680,10 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 		return err
 	}
 	datadogNamespace := configMapConfiguration.Data["datadog_namespace"]
+	newMode := action.Envs["mode"]
 	switch action.Action {
 	case "install":
-		if action.Envs["mode"] == "helm" {
+		if newMode == "helm" {
 			datadogDto := dto.DatadogDTO{
 				Content:          action.Content,
 				DatadogNamespace: datadogNamespace,
@@ -646,7 +704,7 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 			go k.operator.NotifyStatus("install_datadog_update", internal.TransactionEventUpdate, "install datadog update", ctx, &factory)
 			configMapConfiguration.Data["datadog_mode"] = "helm"
 
-		} else if action.Envs["mode"] == "operator" {
+		} else if newMode == "operator" {
 			datadogDto := dto.DatadogDTO{
 				Content:          action.Content,
 				DatadogNamespace: datadogNamespace,
@@ -856,12 +914,12 @@ func (k *K8sManager) uninstallDatadogWithOperator(datadogDto dto.DatadogDTO) err
 func (k *K8sManager) setAutoUpdateRunning() error {
 	configuration, err := k.getConfigMap(k.configMapConfigurationsName, k.namespace)
 	if err != nil {
-		k.logger.Error("auto update docp", "error", err.Error())
+		k.logger.Error("auto update orya", "error", err.Error())
 		return err
 	}
 	configuration.Data["auto_update_running"] = "true"
 	if err := k.updateConfigMap(k.configMapConfigurationsName, k.namespace, configuration.Data); err != nil {
-		k.logger.Error("auto update docp", "error", err.Error())
+		k.logger.Error("auto update orya", "error", err.Error())
 		return err
 	}
 	return nil
@@ -872,12 +930,12 @@ func (k *K8sManager) AutoUpdateDatadog() error {
 	//get config state
 	configState, err := k.getConfigMap(k.configMapStateName, k.namespace)
 	if err != nil {
-		k.logger.Error("auto update docp", "error", err.Error())
+		k.logger.Error("auto update orya", "error", err.Error())
 		return err
 	}
 	configurations, err := k.getConfigMap(k.configMapConfigurationsName, k.namespace)
 	if err != nil {
-		k.logger.Error("auto update docp", "error", err.Error())
+		k.logger.Error("auto update orya", "error", err.Error())
 		return err
 	}
 	//get received
@@ -968,11 +1026,11 @@ func (k *K8sManager) AutoUpdateDatadog() error {
 					ConfigMapConfigurationName: k.configMapConfigurationsName,
 				}
 				ctx := context.WithValue(context.Background(), dto.ContextTransactionStatus, transaction)
-				go k.operator.NotifyStatus("auto_update_docp_received", internal.TransactionEventUpdate, "update docp received", ctx, factorySignal)
+				go k.operator.NotifyStatus("auto_update_orya_received", internal.TransactionEventUpdate, "update orya received", ctx, factorySignal)
 
 				//update repository
 
-				go k.operator.NotifyStatus("auto_update_docp_completed", internal.TransactionEventClose, "update docp completed", ctx, factorySignal)
+				go k.operator.NotifyStatus("auto_update_orya_completed", internal.TransactionEventClose, "update orya completed", ctx, factorySignal)
 			}
 		}
 	}
@@ -981,12 +1039,12 @@ func (k *K8sManager) AutoUpdateDatadog() error {
 	return nil
 }
 
-// AutoUpdateDocp execute auto update the docp
-func (k *K8sManager) AutoUpdateDocp() error {
+// AutoUpdateOrya execute auto update the orya
+func (k *K8sManager) AutoUpdateOrya() error {
 	//execute auto update
 	configState, err := k.getConfigMap(k.configMapStateName, k.namespace)
 	if err != nil {
-		k.logger.Error("auto update docp", "error", err.Error())
+		k.logger.Error("auto update orya", "error", err.Error())
 		return err
 	}
 	//get received
@@ -997,7 +1055,7 @@ func (k *K8sManager) AutoUpdateDocp() error {
 			return err
 		}
 		if k8sConfig.Signal.TypeSignal == "update" {
-			agent := k8sConfig.Signal.Agents.DocpAgent
+			agent := k8sConfig.Signal.Agents.OryaAgent
 			version := agent.Version
 			if version == "latest" {
 				//update agent
@@ -1008,13 +1066,13 @@ func (k *K8sManager) AutoUpdateDocp() error {
 					return err
 				}
 				//validate if already updated
-				currentChartVersion, err := k.operator.GetCurrentHelmChartVersion(k.namespace, utils.GetDocpReleaseName())
+				currentChartVersion, err := k.operator.GetCurrentHelmChartVersion(k.namespace, utils.GetOryaReleaseName())
 				if err != nil {
 					k.logger.Error("failed to get current helm chart version", "error", err.Error())
 					return err
 				}
 
-				latestChartVersion, err := k.operator.GetLatestHelmChartVersion(k.namespace, utils.GetDocpReleaseName())
+				latestChartVersion, err := k.operator.GetLatestHelmChartVersion(k.namespace, utils.GetOryaReleaseName())
 				if err != nil {
 					k.logger.Error("failed to get latest helm chart version", "error", err.Error())
 					return err
@@ -1037,21 +1095,21 @@ func (k *K8sManager) AutoUpdateDocp() error {
 					ConfigMapConfigurationName: k.configMapConfigurationsName,
 				}
 				ctx := context.WithValue(context.Background(), dto.ContextTransactionStatus, transaction)
-				go k.operator.NotifyStatus("auto_update_docp_received", internal.TransactionEventUpdate, "update docp received", ctx, factorySignal)
+				go k.operator.NotifyStatus("auto_update_orya_received", internal.TransactionEventUpdate, "update orya received", ctx, factorySignal)
 
 				//update repository
-				job := templates.TemplateJobAutoUpdateHelmRelease(k.namespace, utils.GetDocpReleaseName(), utils.GetHelmRepository(), latestChartVersion, utils.GetDocpUpdaterRepositoryName(latestChartVersion))
+				job := templates.TemplateJobAutoUpdateHelmRelease(k.namespace, utils.GetOryaReleaseName(), utils.GetHelmRepository(), latestChartVersion, utils.GetOryaUpdaterRepositoryName(latestChartVersion))
 				if err := k.operator.CreateJob(k.namespace, &job); err != nil {
 					k.logger.Error("failed to create job", "error", err.Error())
-					go k.operator.NotifyStatus("auto_update_docp_error", internal.TransactionEventClose, "failed update docp", ctx, factorySignal)
+					go k.operator.NotifyStatus("auto_update_orya_error", internal.TransactionEventClose, "failed update orya", ctx, factorySignal)
 					return err
 				}
-				go k.operator.NotifyStatus("auto_update_docp_completed", internal.TransactionEventClose, "update docp completed", ctx, factorySignal)
+				go k.operator.NotifyStatus("auto_update_orya_completed", internal.TransactionEventClose, "update orya completed", ctx, factorySignal)
 			}
 		}
 	}
 
-	k.logger.Debug("auto update docp", "configState", configState)
+	k.logger.Debug("auto update orya", "configState", configState)
 	return nil
 }
 
@@ -1102,7 +1160,7 @@ func (k *K8sManager) periodicAutoUdpate() error {
 				k.logger.Error("failed to set auto update running", "error", err.Error())
 			}
 
-			if err := k.AutoUpdateDocp(); err != nil {
+			if err := k.AutoUpdateOrya(); err != nil {
 				k.logger.Error("failed to execute auto update", "error", err.Error())
 			}
 			if err := k.AutoUpdateDatadog(); err != nil {
@@ -1141,7 +1199,7 @@ func (k *K8sManager) periodicSendMetadata() error {
 func (k *K8sManager) periodicValidateVendor() error {
 	defer k.wg.Done()
 
-	ticker := time.NewTicker(12 * time.Hour)
+	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
 	for {
@@ -1209,7 +1267,7 @@ func (k *K8sManager) periodicExecute() error {
 
 // Start execute running the manager
 func (k *K8sManager) Start() error {
-	k.logger.Info("Docp Manager Kubernetes Running")
+	k.logger.Info("Orya Manager Kubernetes Running")
 	if err := k.Initialize(); err != nil {
 		return err
 	}

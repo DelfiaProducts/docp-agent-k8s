@@ -1,23 +1,23 @@
-# k8s-docp-chart/templates/webhook-deployment.yaml
+# k8s-orya-chart/templates/webhook-deployment.yaml
 {{- if .Values.webhook.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "k8s-docp.fullname" . }}-webhook
+  name: {{ include "k8s-orya.fullname" . }}-webhook
   namespace: {{ .Values.namespace }}
   labels:
-    {{- include "k8s-docp.labels" . | nindent 4 }}
+    {{- include "k8s-orya.labels" . | nindent 4 }}
     app.kubernetes.io/component: webhook # Label específico do componente
 spec:
   replicas: {{ .Values.agent.replicaCount }}
   selector:
     matchLabels:
-      {{- include "k8s-docp.selectorLabels" . | nindent 6 }}
+      {{- include "k8s-orya.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/component: webhook
   template:
     metadata:
       labels:
-        {{- include "k8s-docp.selectorLabels" . | nindent 8 }}
+        {{- include "k8s-orya.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: webhook
     spec:
       serviceAccountName: {{ .Values.serviceAccount.name }} # Compartilha o ServiceAccount
