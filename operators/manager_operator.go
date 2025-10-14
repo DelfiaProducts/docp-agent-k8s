@@ -16,8 +16,8 @@ import (
 
 	"github.com/OryaHub/agent-k8s/dto"
 	"github.com/OryaHub/agent-k8s/interfaces"
-	"github.com/OryaHub/agent-k8s/internal"
 	"github.com/OryaHub/agent-k8s/mocks"
+	pkg "github.com/OryaHub/agent-k8s/pkg"
 	"github.com/OryaHub/agent-k8s/services"
 	"github.com/OryaHub/agent-k8s/templates"
 	"github.com/OryaHub/agent-k8s/utils"
@@ -278,12 +278,12 @@ func (m *ManagerOperator) SignalUpdateAgent(ctx context.Context, factorySignal *
 	}
 
 	//execute update agent
-	go m.NotifyStatus("update_orya_received", internal.TransactionEventOpen, "update orya received", ctx, factorySignal)
+	go m.NotifyStatus("update_orya_received", pkg.TransactionEventOpen, "update orya received", ctx, factorySignal)
 
 	existedVersion, err := m.GetCurrentHelmChartVersion(m.namespace, utils.GetOryaReleaseName())
 	if err != nil {
 		m.logger.Error("failed to get current helm chart version", "error", err.Error())
-		go m.NotifyStatus("update_orya_error", internal.TransactionEventClose, "failed update agent", ctx, factorySignal)
+		go m.NotifyStatus("update_orya_error", pkg.TransactionEventClose, "failed update agent", ctx, factorySignal)
 		return err
 	}
 
@@ -294,20 +294,20 @@ func (m *ManagerOperator) SignalUpdateAgent(ctx context.Context, factorySignal *
 	m.logger.Debug("already updated", "alreadyUpdated", alreadyUpdated)
 
 	if alreadyUpdated {
-		go m.NotifyStatus("update_orya_complete", internal.TransactionEventClose, "agent already updated with last version", ctx, factorySignal)
+		go m.NotifyStatus("update_orya_complete", pkg.TransactionEventClose, "agent already updated with last version", ctx, factorySignal)
 		return nil
 	}
 	m.logger.Debug("execute update version agent", "timestamp", time.Now())
-	go m.NotifyStatus("update_orya_processing", internal.TransactionEventUpdate, "update orya processing", ctx, factorySignal)
+	go m.NotifyStatus("update_orya_processing", pkg.TransactionEventUpdate, "update orya processing", ctx, factorySignal)
 
 	//update repository
 	job := templates.TemplateJobAutoUpdateHelmRelease(factorySignal.Namespace, utils.GetOryaReleaseName(), utils.GetHelmRepository(), applyVersion, utils.GetOryaUpdaterRepositoryName(applyVersion))
 	if err := m.CreateJob(factorySignal.Namespace, &job); err != nil {
 		m.logger.Error("failed to create job", "error", err.Error())
-		go m.NotifyStatus("update_orya_error", internal.TransactionEventClose, "failed update orya", ctx, factorySignal)
+		go m.NotifyStatus("update_orya_error", pkg.TransactionEventClose, "failed update orya", ctx, factorySignal)
 		return err
 	}
-	go m.NotifyStatus("update_orya_completed", internal.TransactionEventClose, "update orya completed", ctx, factorySignal)
+	go m.NotifyStatus("update_orya_completed", pkg.TransactionEventClose, "update orya completed", ctx, factorySignal)
 
 	return nil
 }
@@ -334,7 +334,7 @@ func (m *ManagerOperator) SignalUpdateVendor(ctx context.Context, factorySignal 
 	}
 
 	if goNext {
-		go m.NotifyStatus("update_vendor_received", internal.TransactionEventOpen, "update vendor received", ctx, factorySignal)
+		go m.NotifyStatus("update_vendor_received", pkg.TransactionEventOpen, "update vendor received", ctx, factorySignal)
 		fn, ok := m.mapFactoryVendorsSignalUpdate[factorySignal.Signal.Vendor.Name]
 		if ok {
 			return fn(ctx, factorySignal)
@@ -348,11 +348,11 @@ func (m *ManagerOperator) SignalUpdateVendor(ctx context.Context, factorySignal 
 
 // SignalUninstall execute signal uninstall
 func (m *ManagerOperator) SignalUninstall(ctx context.Context, factorySignal *dto.FactorySignalDTO) error {
-	go m.NotifyStatus("uninstall_orya_received", internal.TransactionEventOpen, "uninstall orya received", ctx, factorySignal)
+	go m.NotifyStatus("uninstall_orya_received", pkg.TransactionEventOpen, "uninstall orya received", ctx, factorySignal)
 	m.logger.Debug("execute signal uninstall", "signal type", factorySignal.Signal.TypeSignal)
 	if len(factorySignal.Signal.RemoveOtherVendors) > 0 {
 		if m.removeAllVendors(factorySignal.Signal.RemoveOtherVendors) {
-			go m.NotifyStatus("uninstall_orya_initiate", internal.TransactionEventUpdate, "all vendors initialize uninstall", ctx, factorySignal)
+			go m.NotifyStatus("uninstall_orya_initiate", pkg.TransactionEventUpdate, "all vendors initialize uninstall", ctx, factorySignal)
 			// remove all
 			m.logger.Debug("signal uninstall remove all vendors", "timestamp", time.Now())
 			for _, fn := range m.mapFactoryVendorsSignalUninstall {
@@ -362,7 +362,7 @@ func (m *ManagerOperator) SignalUninstall(ctx context.Context, factorySignal *dt
 			}
 		} else {
 			// not remove all
-			go m.NotifyStatus("uninstall_orya_initiate", internal.TransactionEventUpdate, "other vendors initialize uninstall", ctx, factorySignal)
+			go m.NotifyStatus("uninstall_orya_initiate", pkg.TransactionEventUpdate, "other vendors initialize uninstall", ctx, factorySignal)
 			m.logger.Debug("signal uninstall remove olther vendors", "timestamp", time.Now())
 			for _, vendor := range factorySignal.Signal.RemoveOtherVendors {
 				fn, ok := m.mapFactoryVendorsSignalUninstall[vendor]
@@ -378,30 +378,30 @@ func (m *ManagerOperator) SignalUninstall(ctx context.Context, factorySignal *dt
 	}
 
 	time.Sleep(20 * time.Second)
-	go m.NotifyStatus("uninstall_orya_update", internal.TransactionEventUpdate, "auto uninstall update", ctx, factorySignal)
+	go m.NotifyStatus("uninstall_orya_update", pkg.TransactionEventUpdate, "auto uninstall update", ctx, factorySignal)
 
 	if err := m.RemoveConfigMaps(factorySignal.Namespace); err != nil {
 		m.logger.Error("execute signal auto uninstall remove config maps", "error", err.Error())
-		go m.NotifyStatus("uninstall_orya_error", internal.TransactionEventClose, "failed remove config maps", ctx, factorySignal)
+		go m.NotifyStatus("uninstall_orya_error", pkg.TransactionEventClose, "failed remove config maps", ctx, factorySignal)
 		return err
 	}
 	if err := m.AutoUninstall(factorySignal.Namespace); err != nil {
 		m.logger.Error("execute signal auto uninstall", "error", err.Error())
-		go m.NotifyStatus("uninstall_orya_error", internal.TransactionEventClose, "failed auto uninstall", ctx, factorySignal)
+		go m.NotifyStatus("uninstall_orya_error", pkg.TransactionEventClose, "failed auto uninstall", ctx, factorySignal)
 		return err
 	}
 	if err := m.RemoveOryaMutatingAgent(utils.GetMutatingWebhookName(), factorySignal.Namespace); err != nil {
 		m.logger.Error("execute signal auto uninstall remove agent mutate", "error", err.Error())
-		go m.NotifyStatus("uninstall_orya_error", internal.TransactionEventClose, "failed remove agent mutate", ctx, factorySignal)
+		go m.NotifyStatus("uninstall_orya_error", pkg.TransactionEventClose, "failed remove agent mutate", ctx, factorySignal)
 		return err
 	}
 
 	if err := m.RemoveOryaNamespace(factorySignal.Namespace); err != nil {
-		go m.NotifyStatus("uninstall_orya_error", internal.TransactionEventClose, "failed remove orya namespace", ctx, factorySignal)
+		go m.NotifyStatus("uninstall_orya_error", pkg.TransactionEventClose, "failed remove orya namespace", ctx, factorySignal)
 		return err
 	}
 
-	go m.NotifyStatus("uninstall_orya_completed", internal.TransactionEventClose, "uninstall orya completed", ctx, factorySignal)
+	go m.NotifyStatus("uninstall_orya_completed", pkg.TransactionEventClose, "uninstall orya completed", ctx, factorySignal)
 	return nil
 }
 
@@ -413,17 +413,17 @@ func (m *ManagerOperator) SignalDebugSession(ctx context.Context, factorySignal 
 // DatadogUninstall execute uninstall the datadog
 func (m *ManagerOperator) DatadogUninstall(ctx context.Context, factorySignal *dto.FactorySignalDTO) error {
 	m.logger.Debug("execute datadog uninstall", "timestamp", time.Now())
-	go m.NotifyStatus("uninstall_orya_vendor_received", internal.TransactionEventUpdate, "uninstall orya vendor received", ctx, factorySignal)
+	go m.NotifyStatus("uninstall_orya_vendor_received", pkg.TransactionEventUpdate, "uninstall orya vendor received", ctx, factorySignal)
 	configMapConfiguration, err := m.GetConfigMap(factorySignal.ConfigMapConfigurationName, factorySignal.Namespace)
 	if err != nil {
 		m.logger.Error("execute signal get config map on datadog uninstall", "error", err.Error())
-		go m.NotifyStatus("uninstall_orya_vendor_error", internal.TransactionEventClose, "failed uninstall orya vendor", ctx, factorySignal)
+		go m.NotifyStatus("uninstall_orya_vendor_error", pkg.TransactionEventClose, "failed uninstall orya vendor", ctx, factorySignal)
 		return err
 	}
 	exists, err := m.VerifyDatadogResourceExists("datadog", factorySignal.DatadogNamespace)
 	if err != nil {
 		m.logger.Error("verify datadog resource exists", "error", err.Error())
-		go m.NotifyStatus("uninstall_orya_vendor_error", internal.TransactionEventClose, "failed uninstall orya vendor", ctx, factorySignal)
+		go m.NotifyStatus("uninstall_orya_vendor_error", pkg.TransactionEventClose, "failed uninstall orya vendor", ctx, factorySignal)
 		return err
 	}
 	if exists {
@@ -431,21 +431,21 @@ func (m *ManagerOperator) DatadogUninstall(ctx context.Context, factorySignal *d
 		if ok {
 			switch modeDatadog {
 			case "helm":
-				go m.NotifyStatus("uninstall_orya_vendor_processing", internal.TransactionEventUpdate, "uninstall orya vendor processing", ctx, factorySignal)
+				go m.NotifyStatus("uninstall_orya_vendor_processing", pkg.TransactionEventUpdate, "uninstall orya vendor processing", ctx, factorySignal)
 				if err := m.UninstallDatadogCall("helm", dto.DatadogDTO{DatadogNamespace: factorySignal.DatadogNamespace}); err != nil {
 					m.logger.Error("execute uninstall datadog with helm", "error", err.Error())
-					go m.NotifyStatus("uninstall_orya_vendor_error", internal.TransactionEventClose, "failed uninstall orya vendor", ctx, factorySignal)
+					go m.NotifyStatus("uninstall_orya_vendor_error", pkg.TransactionEventClose, "failed uninstall orya vendor", ctx, factorySignal)
 					return err
 				}
-				go m.NotifyStatus("uninstall_orya_vendor_complete", internal.TransactionEventClose, "uninstall orya vendo completed", ctx, factorySignal)
+				go m.NotifyStatus("uninstall_orya_vendor_complete", pkg.TransactionEventClose, "uninstall orya vendo completed", ctx, factorySignal)
 			case "operator":
-				go m.NotifyStatus("uninstall_orya_vendor_processing", internal.TransactionEventUpdate, "uninstall orya vendor processing", ctx, factorySignal)
+				go m.NotifyStatus("uninstall_orya_vendor_processing", pkg.TransactionEventUpdate, "uninstall orya vendor processing", ctx, factorySignal)
 				if err := m.UninstallDatadogCall("operator", dto.DatadogDTO{DatadogNamespace: factorySignal.DatadogNamespace}); err != nil {
 					m.logger.Error("execute uninstall datadog with operator", "error", err.Error())
-					go m.NotifyStatus("uninstall_orya_vendor_error", internal.TransactionEventClose, "failed uninstall orya vendor", ctx, factorySignal)
+					go m.NotifyStatus("uninstall_orya_vendor_error", pkg.TransactionEventClose, "failed uninstall orya vendor", ctx, factorySignal)
 					return err
 				}
-				go m.NotifyStatus("uninstall_orya_vendor_complete", internal.TransactionEventClose, "uninstall orya vendor completed", ctx, factorySignal)
+				go m.NotifyStatus("uninstall_orya_vendor_complete", pkg.TransactionEventClose, "uninstall orya vendor completed", ctx, factorySignal)
 			}
 		}
 	}
@@ -462,7 +462,7 @@ func (m *ManagerOperator) DatadogUpdate(ctx context.Context, factorySignal *dto.
 	exists, err := m.VerifyDatadogResourceExists("datadog", factorySignal.DatadogNamespace)
 	if err != nil {
 		m.logger.Error("verify datadog resource exists", "error", err.Error())
-		go m.NotifyStatus("update_orya_vendor_error", internal.TransactionEventClose, "failed update configurations vendor", ctx, factorySignal)
+		go m.NotifyStatus("update_orya_vendor_error", pkg.TransactionEventClose, "failed update configurations vendor", ctx, factorySignal)
 		return err
 	}
 	if exists {
@@ -472,38 +472,38 @@ func (m *ManagerOperator) DatadogUpdate(ctx context.Context, factorySignal *dto.
 			switch modeDatadog {
 			case "helm":
 				if modeVendor == "helm" {
-					go m.NotifyStatus("update_orya_vendor_processing", internal.TransactionEventUpdate, "update orya vendor processing", ctx, factorySignal)
+					go m.NotifyStatus("update_orya_vendor_processing", pkg.TransactionEventUpdate, "update orya vendor processing", ctx, factorySignal)
 					if err := m.UpdateDatadogConfigurations("helm", dto.DatadogDTO{DatadogNamespace: factorySignal.DatadogNamespace, Content: factorySignal.Signal.Vendor.Content, Version: factorySignal.Signal.Vendor.Version}); err != nil {
 						m.logger.Error("execute update datadog with helm", "error", err.Error())
-						go m.NotifyStatus("uninstall_orya_vendor_error", internal.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
+						go m.NotifyStatus("uninstall_orya_vendor_error", pkg.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
 						return err
 					}
 					configMapConfiguration.Data["datadog_hash"] = utils.GenerateHashMd5([]byte(factorySignal.Signal.Vendor.Content))
 					if err := m.UpdateConfigMap(m.configMapConfigurationsName, m.namespace, configMapConfiguration.Data); err != nil {
-						go m.NotifyStatus("uninstall_orya_vendor_error", internal.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
+						go m.NotifyStatus("uninstall_orya_vendor_error", pkg.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
 						return err
 					}
-					go m.NotifyStatus("update_orya_vendor_complete", internal.TransactionEventClose, "update orya vendor completed", ctx, factorySignal)
+					go m.NotifyStatus("update_orya_vendor_complete", pkg.TransactionEventClose, "update orya vendor completed", ctx, factorySignal)
 				}
 			case "operator":
 				if modeVendor == "operator" {
-					go m.NotifyStatus("update_orya_vendor_processing", internal.TransactionEventUpdate, "update orya vendor processing", ctx, factorySignal)
+					go m.NotifyStatus("update_orya_vendor_processing", pkg.TransactionEventUpdate, "update orya vendor processing", ctx, factorySignal)
 					if err := m.UpdateDatadogConfigurations("operator", dto.DatadogDTO{DatadogNamespace: factorySignal.DatadogNamespace, Content: factorySignal.Signal.Vendor.Content, Version: factorySignal.Signal.Vendor.Version}); err != nil {
 						m.logger.Error("execute update datadog with operator", "error", err.Error())
-						go m.NotifyStatus("update_orya_vendor__error", internal.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
+						go m.NotifyStatus("update_orya_vendor__error", pkg.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
 						return err
 					}
 					configMapConfiguration.Data["datadog_hash"] = utils.GenerateHashMd5([]byte(factorySignal.Signal.Vendor.Content))
 					if err := m.UpdateConfigMap(m.configMapConfigurationsName, m.namespace, configMapConfiguration.Data); err != nil {
-						go m.NotifyStatus("uninstall_orya_vendor_error", internal.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
+						go m.NotifyStatus("uninstall_orya_vendor_error", pkg.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
 						return err
 					}
-					go m.NotifyStatus("update_orya_vendor_complete", internal.TransactionEventClose, "update orya vendor completed", ctx, factorySignal)
+					go m.NotifyStatus("update_orya_vendor_complete", pkg.TransactionEventClose, "update orya vendor completed", ctx, factorySignal)
 				}
 			}
 		}
 	} else {
-		go m.NotifyStatus("update_orya_vendor_error", internal.TransactionEventClose, "failed verify vendor exists", ctx, factorySignal)
+		go m.NotifyStatus("update_orya_vendor_error", pkg.TransactionEventClose, "failed verify vendor exists", ctx, factorySignal)
 	}
 
 	return nil
@@ -641,7 +641,7 @@ func (m *ManagerOperator) GetNamespaces() ([]corev1.Namespace, error) {
 		}
 	}
 	if len(namespaces.Items) == 0 {
-		return nil, internal.ErrNotFound
+		return nil, pkg.ErrNotFound
 	}
 	return namespaces.Items, nil
 }
@@ -664,7 +664,7 @@ func (m *ManagerOperator) GetKeyFromConfigMap(key, configMapName, namespace stri
 		return val, nil
 	}
 
-	return "", internal.ConfigMapKeyNotFound
+	return "", pkg.ConfigMapKeyNotFound
 }
 
 // UpdateConfigMap execute update the config map
@@ -985,12 +985,12 @@ func (m *ManagerOperator) ExecuteRegisterCall(mode string, metadata dto.K8sRegis
 		}
 		return resp, statusCode, err
 	case "update":
-		go m.NotifyStatus("update_metadata", internal.TransactionEventOpen, "update metadata", ctx, &factoryDto)
+		go m.NotifyStatus("update_metadata", pkg.TransactionEventOpen, "update metadata", ctx, &factoryDto)
 		resp, statusCode, err := m.registerService.RegisterCall("compute/v1/docp", metadata, apiKey, token, false)
 		if err != nil {
-			go m.NotifyStatus("update_metadata_error", internal.TransactionEventClose, "error on update metadata", ctx, &factoryDto)
+			go m.NotifyStatus("update_metadata_error", pkg.TransactionEventClose, "error on update metadata", ctx, &factoryDto)
 		}
-		go m.NotifyStatus("update_metadata_completed", internal.TransactionEventClose, "update metadata completed", ctx, &factoryDto)
+		go m.NotifyStatus("update_metadata_completed", pkg.TransactionEventClose, "update metadata completed", ctx, &factoryDto)
 		return resp, statusCode, err
 
 	}
