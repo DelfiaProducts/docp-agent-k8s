@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/OryaHub/agent-k8s/dto"
-	"github.com/OryaHub/agent-k8s/internal"
+	"github.com/OryaHub/agent-k8s/pkg"
 	"github.com/OryaHub/agent-k8s/utils"
 )
 
@@ -31,7 +31,7 @@ var StateCheckMocks = []StateCheckMockResponse{
 	{
 		StatusCode: 403,
 		K8sConfig:  dto.K8sConfig{},
-		ErrorMock:  internal.ErrNotAuthorized,
+		ErrorMock:  pkg.ErrNotAuthorized,
 	},
 	{
 		StatusCode: 200,
