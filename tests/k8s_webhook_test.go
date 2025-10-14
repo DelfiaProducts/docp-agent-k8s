@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/OryaHub/agent-k8s/agents"
 	"github.com/OryaHub/agent-k8s/bdd"
-	"github.com/OryaHub/agent-k8s/pkg"
 	"github.com/OryaHub/agent-k8s/utils"
 )
 
@@ -14,7 +14,7 @@ func TestNewK8sWebhook(t *testing.T) {
 		scenario("criar logger pra passar pro pkg webhook", func(s *bdd.Scenario) {
 			var port string
 			var logger *utils.K8sLogger
-			var webhook *pkg.K8sWebhook
+			var webhook *agents.K8sWebhook
 			s.Given("que eu tenho uma configuração da porta", func() {
 				port = ""
 			})
@@ -23,7 +23,7 @@ func TestNewK8sWebhook(t *testing.T) {
 			})
 
 			s.When("eu instancio o pkg webhook com essa configuração", func() {
-				webhook = pkg.NewK8sWebhook(port, logger)
+				webhook = agents.NewK8sWebhook(port, logger)
 			})
 
 			s.Then("o valor da porta nao pode ser vazia", func(t *testing.T) {

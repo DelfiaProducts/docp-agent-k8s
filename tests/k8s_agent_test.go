@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/OryaHub/agent-k8s/agents"
 	"github.com/OryaHub/agent-k8s/bdd"
-	"github.com/OryaHub/agent-k8s/pkg"
 	"github.com/OryaHub/agent-k8s/utils"
 )
 
@@ -14,13 +14,13 @@ func TestNewK8sAgent(t *testing.T) {
 		scenario("criar logger pra passar pro pkg agent", func(s *bdd.Scenario) {
 			port := "8080"
 			var logger *utils.K8sLogger
-			var agent *pkg.K8sAgent
+			var agent *agents.K8sAgent
 			s.Given("que eu tenho uma configuração de logger", func() {
 				logger = utils.NewK8sLoggerText(os.Stdout)
 			})
 
 			s.When("eu instancio o pkg agent com essa configuração", func() {
-				agent = pkg.NewK8sAgent(port, logger)
+				agent = agents.NewK8sAgent(port, logger)
 			})
 
 			s.Then("um logger deve ser criado e associado ao agente", func(t *testing.T) {
