@@ -1,4 +1,4 @@
-package internal
+package pkg
 
 const (
 	ORYA_DOMAIN                                = "https://msapi.docphq.tech"
