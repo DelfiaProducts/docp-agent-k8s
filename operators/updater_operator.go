@@ -4,8 +4,6 @@ import (
 	"sync"
 
 	"github.com/OryaHub/agent-k8s/utils"
-	"helm.sh/helm/v3/pkg/release"
-	corev1 "k8s.io/api/core/v1"
 )
 
 type UpdaterOperator struct {
@@ -43,38 +41,6 @@ func (uo *UpdaterOperator) Setup() error {
 	return nil
 }
 
-// ValidateDeploymentSuccess valida se o último deployment teve sucesso
-func (uo *UpdaterOperator) ValidateDeploymentSuccess(namespace, deploymentName string) (bool, error) {
-	return uo.helmClient.ValidateDeploymentSuccess(namespace, deploymentName)
-}
-
-// ValidateAllOryaDeploymentsSuccess valida se todos os deployments do DOCP tiveram sucesso
-func (uo *UpdaterOperator) ValidateAllOryaDeploymentsSuccess(namespace string) (bool, error) {
-	return uo.helmClient.ValidateAllOryaDeploymentsSuccess(namespace)
-}
-
-// GetLatestHelmVersion busca a versão mais atual do chart Helm do DOCP
-func (uo *UpdaterOperator) GetLatestHelmVersion(namespace, releaseName string) (string, error) {
-	latestVersion, err := uo.helmClient.GetLatestHelmVersion(namespace, releaseName)
-	if err != nil {
-		uo.logger.Error("failed to get latest helm version", "error", err.Error())
-		return "", err
-	}
-
-	return latestVersion, nil
-}
-
-// GetReleaseByVersion busca a versão do release do DOCP
-func (uo *UpdaterOperator) GetReleaseByVersion(namespace, releaseName, version string) (*release.Release, error) {
-	latestRelease, err := uo.helmClient.GetReleaseByVersion(namespace, releaseName, version)
-	if err != nil {
-		uo.logger.Error("failed to get latest release", "error", err.Error())
-		return nil, err
-	}
-
-	return latestRelease, nil
-}
-
 // UpgradeOryaHelmChart executa o upgrade do chart Helm do DOCP
 func (uo *UpdaterOperator) UpgradeOryaHelmChart(namespace, releaseName, repositoryURL, targetVersion string, values map[string]interface{}) error {
 	if err := uo.helmClient.UpgradeOryaHelmChart(namespace, releaseName, repositoryURL, targetVersion, values); err != nil {
@@ -105,11 +71,6 @@ func (m *UpdaterOperator) RollbackOryaHelmChart(namespace, releaseName string) e
 	}
 
 	return nil
-}
-
-// ValidateAndRollbackIfNeeded valida o deployment e executa rollback se necessário
-func (m *UpdaterOperator) ValidateAndRollbackIfNeeded(namespace, releaseName string, maxRetries int) error {
-	return m.helmClient.ValidateAndRollbackIfNeeded(namespace, releaseName, maxRetries)
 }
 
 // UpgradeOryaWithRollbackProtection executa upgrade com proteção de rollback automático
@@ -148,11 +109,6 @@ func (m *UpdaterOperator) UpgradeOryaWithRollbackProtection(namespace, releaseNa
 	m.logger.Debug("upgrade with rollback protection completed successfully",
 		"finalVersion", upgradeVersion)
 	return nil
-}
-
-// GetConfigMap retrieves a config map by name and namespace
-func (uo *UpdaterOperator) GetConfigMap(configMapName string, namespace string) (*corev1.ConfigMap, error) {
-	return uo.kubeClient.GetConfigMap(configMapName, namespace)
 }
 
 // UpdateConfigMap updates a config map by name and namespace

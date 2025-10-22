@@ -3,13 +3,13 @@ package services
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 
 	"github.com/OryaHub/agent-k8s/dto"
+	"github.com/OryaHub/agent-k8s/pkg"
 	"github.com/OryaHub/agent-k8s/utils"
 )
 
@@ -18,6 +18,7 @@ type AuthService struct {
 	urlAuth                     string
 	configMapConfigurationsName string
 	logger                      *utils.K8sLogger
+	json                        *pkg.JsonClient
 	client                      *http.Client
 }
 
@@ -25,6 +26,7 @@ type AuthService struct {
 func NewAuthService(logger *utils.K8sLogger) *AuthService {
 	return &AuthService{
 		logger: logger,
+		json:   pkg.NewJsonClient(),
 	}
 }
 
@@ -43,32 +45,11 @@ func (as *AuthService) Setup() error {
 	return nil
 }
 
-// marshaller execute marshal the struct for slice the bytes
-func (as *AuthService) marshaller(inner any) ([]byte, error) {
-	as.logger.Debug("execute marshaller", "inner", inner)
-	resBytes, err := json.Marshal(inner)
-	if err != nil {
-		as.logger.Error("error in execute marshaller", "error", err.Error())
-		return nil, err
-	}
-	return resBytes, nil
-}
-
-// unmarshaller execute unmarshal the content bytes
-func (as *AuthService) unmarshaller(content []byte, inner any) error {
-	as.logger.Debug("execute unmarshaller", "content", string(content), "inner", inner)
-	if err := json.Unmarshal(content, inner); err != nil {
-		as.logger.Error("error in execute unmarshaller", "error", err.Error())
-		return err
-	}
-	return nil
-}
-
 // AuthCall execute call for auth service
 func (as *AuthService) AuthCall(path string, payload dto.K8sAuthPayload) ([]byte, int, error) {
 	url := fmt.Sprintf("%s/%s", as.urlAuth, path)
 	apiKey := payload.ApiKey
-	payloadBytes, err := as.marshaller(&payload)
+	payloadBytes, err := as.json.Marshall(&payload)
 	if err != nil {
 		return nil, 0, err
 	}

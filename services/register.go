@@ -3,13 +3,13 @@ package services
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 
 	"github.com/OryaHub/agent-k8s/dto"
+	"github.com/OryaHub/agent-k8s/pkg"
 	"github.com/OryaHub/agent-k8s/utils"
 )
 
@@ -18,6 +18,7 @@ type RegisterService struct {
 	urlRegister                 string
 	configMapConfigurationsName string
 	logger                      *utils.K8sLogger
+	json                        *pkg.JsonClient
 	client                      *http.Client
 }
 
@@ -25,6 +26,7 @@ type RegisterService struct {
 func NewRegisterService(logger *utils.K8sLogger) *RegisterService {
 	return &RegisterService{
 		logger: logger,
+		json:   pkg.NewJsonClient(),
 	}
 }
 
@@ -43,32 +45,11 @@ func (rs *RegisterService) Setup() error {
 	return nil
 }
 
-// marshaller execute marshal the struct for slice the bytes
-func (rs *RegisterService) marshaller(inner any) ([]byte, error) {
-	rs.logger.Debug("execute marshaller", "inner", inner)
-	resBytes, err := json.Marshal(inner)
-	if err != nil {
-		rs.logger.Error("error in execute marshaller", "error", err.Error())
-		return nil, err
-	}
-	return resBytes, nil
-}
-
-// unmarshaller execute unmarshal the content bytes
-func (rs *RegisterService) unmarshaller(content []byte, inner any) error {
-	rs.logger.Debug("execute unmarshaller", "content", string(content), "inner", inner)
-	if err := json.Unmarshal(content, inner); err != nil {
-		rs.logger.Error("error in execute unmarshaller", "error", err.Error())
-		return err
-	}
-	return nil
-}
-
 // RegisterCall execute send metadata from cluster to
 // register service
 func (rs *RegisterService) RegisterCall(path string, registerDto dto.K8sRegister, apiKey string, token string, isCreate bool) ([]byte, int, error) {
 	url := fmt.Sprintf("%s/%s", rs.urlRegister, path)
-	metaBytes, err := rs.marshaller(registerDto)
+	metaBytes, err := rs.json.Marshall(registerDto)
 	if err != nil {
 		return nil, 0, err
 	}
