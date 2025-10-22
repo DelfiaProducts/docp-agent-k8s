@@ -3,19 +3,20 @@ package services
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 
 	"github.com/OryaHub/agent-k8s/dto"
+	"github.com/OryaHub/agent-k8s/pkg"
 	"github.com/OryaHub/agent-k8s/utils"
 )
 
 // StateCheckService is struct for state check service
 type StateCheckService struct {
 	logger        *utils.K8sLogger
+	json          *pkg.JsonClient
 	stateCheckUrl string
 	client        *http.Client
 }
@@ -24,6 +25,7 @@ type StateCheckService struct {
 func NewStateCheckService(logger *utils.K8sLogger) *StateCheckService {
 	return &StateCheckService{
 		logger: logger,
+		json:   pkg.NewJsonClient(),
 	}
 }
 
@@ -39,17 +41,6 @@ func (sc *StateCheckService) Setup() error {
 	}
 	sc.stateCheckUrl = urlDomain
 	return nil
-}
-
-// marshaller execute marshal the struct for slice the bytes
-func (sc *StateCheckService) marshaller(inner any) ([]byte, error) {
-	sc.logger.Debug("execute marshaller", "inner", inner)
-	resBytes, err := json.Marshal(inner)
-	if err != nil {
-		sc.logger.Error("error in execute marshaller", "error", err.Error())
-		return nil, err
-	}
-	return resBytes, nil
 }
 
 // GetState return state from state check api
@@ -77,7 +68,7 @@ func (sc *StateCheckService) GetState(pathUrl string, stateCheckPayload dto.K8sS
 
 // SendStatus execute send status for state check api
 func (sc *StateCheckService) SendStatus(pathUrl string, transactionStatus dto.TransactionStatus, accessToken string) ([]byte, int, error) {
-	payloadBytes, err := sc.marshaller(dto.K8sStateCheckSendStatus{
+	payloadBytes, err := sc.json.Marshall(dto.K8sStateCheckSendStatus{
 		Id:        transactionStatus.ID,
 		UlidEvent: transactionStatus.UlidEvent,
 		TypeEvent: transactionStatus.TypeEvent,
