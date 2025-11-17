@@ -1,7 +1,7 @@
 package pkg
 
 const (
-	ORYA_DOMAIN                                = "https://msapi.docphq.tech"
+	ORYA_DOMAIN                                = "https://msapi.orya.tech"
 	ORYA_AGENT_PORT                            = "12012"
 	ORYA_NAMESPACE                             = "orya-agent"
 	ORYA_CONFIG_MAP_STATE_NAME                 = "orya-state-config-map"
