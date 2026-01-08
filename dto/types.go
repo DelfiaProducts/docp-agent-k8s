@@ -2,12 +2,12 @@ package dto
 
 // K8sConfig is struct for state
 type K8sConfig struct {
-	Signal  K8sConfigSignal `json:"signal"`
-	TraceID string          `json:"trace_id"`
+	Signal K8sConfigSignal `json:"signal"`
 }
 
 type K8sConfigSignal struct {
 	TypeSignal         string                     `json:"type"`
+	TraceID            string                     `json:"trace_id"`
 	RemoveOtherVendors []string                   `json:"remove_other_vendors"`
 	Duration           string                     `json:"duration"`
 	Agents             K8sConfigSignalAgents      `json:"agents"`

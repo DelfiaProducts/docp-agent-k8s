@@ -35,8 +35,21 @@ func (m *ManagerOperator) NotifyStatus(status string, typeEvent string, message 
 			transactionStatus.TypeEvent = typeEvent
 			transactionStatus.UlidEvent = utils.GetUlid()
 			//inject tracer id if exists
-			if traceID, ok := configMapState.Data["trace_id"]; ok && traceID != "" {
-				transactionStatus.TraceID = traceID
+			var k8sConfig dto.K8sConfig
+
+			signalBytes, err := m.json.Marshall(configMapState.Data)
+			if err != nil {
+				m.logger.Error("notify status marshal config map state", "error", err.Error())
+				return err
+			}
+			err = m.json.Unmarshall(signalBytes, &k8sConfig)
+			if err != nil {
+				m.logger.Error("notify status unmarshall config map state", "error", err.Error())
+				return err
+			}
+
+			if k8sConfig.Signal.TraceID != "" {
+				transactionStatus.TraceID = k8sConfig.Signal.TraceID
 			}
 			if m.LockedEvents {
 				m.pendingTransactionEvents = append(m.pendingTransactionEvents, transactionStatus)
