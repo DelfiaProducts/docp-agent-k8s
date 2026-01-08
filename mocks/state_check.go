@@ -181,12 +181,7 @@ func (sc *StateCheckService) GetState(pathUrl string, stateCheckPayload dto.K8sS
 
 // SendStatus execute send status for state check api
 func (sc *StateCheckService) SendStatus(pathUrl string, transactionStatus dto.TransactionStatus, accessToken string) ([]byte, int, error) {
-	payloadBytes, err := sc.json.Marshall(dto.K8sStateCheckSendStatus{
-		Id:        transactionStatus.ID,
-		TypeEvent: transactionStatus.TypeEvent,
-		Status:    transactionStatus.Status,
-		Message:   transactionStatus.Message,
-	})
+	payloadBytes, err := sc.json.Marshall(transactionStatus)
 	if err != nil {
 		return nil, 0, err
 	}

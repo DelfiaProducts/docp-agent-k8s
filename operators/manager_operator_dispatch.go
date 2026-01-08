@@ -20,6 +20,13 @@ func (m *ManagerOperator) NotifyStatus(status string, typeEvent string, message 
 		m.logger.Error("notify status get config map", "error", err.Error())
 		return err
 	}
+	//get tracer id from config map state
+	configMapState, err := m.GetConfigMap(utils.GetOryaConfiMapStateName(), factorySignal.Namespace)
+	if err != nil {
+		m.logger.Error("notify status get config map state", "error", err.Error())
+		return err
+	}
+
 	if accessToken, ok := configMapConfiguration.Data["access_token"]; ok {
 		transactionStatus := utils.GetTransactionFromContext(ctx)
 		if len(transactionStatus.ID) > 0 {
@@ -27,6 +34,23 @@ func (m *ManagerOperator) NotifyStatus(status string, typeEvent string, message 
 			transactionStatus.Message = message
 			transactionStatus.TypeEvent = typeEvent
 			transactionStatus.UlidEvent = utils.GetUlid()
+			//inject tracer id if exists
+			var k8sConfig dto.K8sConfig
+
+			signalBytes, err := m.json.Marshall(configMapState.Data)
+			if err != nil {
+				m.logger.Error("notify status marshal config map state", "error", err.Error())
+				return err
+			}
+			err = m.json.Unmarshall(signalBytes, &k8sConfig)
+			if err != nil {
+				m.logger.Error("notify status unmarshall config map state", "error", err.Error())
+				return err
+			}
+
+			if k8sConfig.Signal.TraceID != "" {
+				transactionStatus.TraceID = k8sConfig.Signal.TraceID
+			}
 			if m.LockedEvents {
 				m.pendingTransactionEvents = append(m.pendingTransactionEvents, transactionStatus)
 			} else {
