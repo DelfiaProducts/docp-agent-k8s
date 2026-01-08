@@ -37,7 +37,7 @@ func (m *ManagerOperator) NotifyStatus(status string, typeEvent string, message 
 			//inject tracer id if exists
 			var k8sConfig dto.K8sConfig
 
-			signalBytes, err := m.json.Marshall(configMapState.Data)
+			signalBytes, err := m.json.Marshall(configMapState.Data["received"])
 			if err != nil {
 				m.logger.Error("notify status marshal config map state", "error", err.Error())
 				return err
