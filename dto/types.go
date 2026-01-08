@@ -2,7 +2,8 @@ package dto
 
 // K8sConfig is struct for state
 type K8sConfig struct {
-	Signal K8sConfigSignal `json:"signal"`
+	Signal   K8sConfigSignal `json:"signal"`
+	TracerID string          `json:"tracer_id"`
 }
 
 type K8sConfigSignal struct {
@@ -149,16 +150,6 @@ type K8sRegisterResponse struct {
 // K8sStateCheckPayload is struct for payload to state check
 type K8sStateCheckPayload struct{}
 
-// K8sStateCheckSendStatus is struct for send status
-// to state check
-type K8sStateCheckSendStatus struct {
-	Id        string `json:"id"`
-	UlidEvent string `json:"ulid_event"`
-	TypeEvent string `json:"type"`
-	Status    string `json:"status"`
-	Message   string `json:"message,omitempty"`
-}
-
 // K8sAuthPayload is struct for auth payload
 type K8sAuthPayload struct {
 	ApiKey    string `json:"api_key"`
@@ -187,6 +178,7 @@ const ContextTransactionStatus ctxKey = "transactionStatus"
 // TransactionStatus is struct for transaction status
 type TransactionStatus struct {
 	ID        string `json:"id"`
+	TracerID  string `json:"tracer_id,omitempty"`
 	UlidEvent string `json:"ulid_event"`
 	TypeEvent string `json:"type"`
 	Status    string `json:"status"`
