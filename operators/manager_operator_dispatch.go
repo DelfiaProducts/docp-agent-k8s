@@ -35,8 +35,8 @@ func (m *ManagerOperator) NotifyStatus(status string, typeEvent string, message 
 			transactionStatus.TypeEvent = typeEvent
 			transactionStatus.UlidEvent = utils.GetUlid()
 			//inject tracer id if exists
-			if tracerID, ok := configMapState.Data["tracer_id"]; ok && tracerID != "" {
-				transactionStatus.TracerID = tracerID
+			if traceID, ok := configMapState.Data["trace_id"]; ok && traceID != "" {
+				transactionStatus.TraceID = traceID
 			}
 			if m.LockedEvents {
 				m.pendingTransactionEvents = append(m.pendingTransactionEvents, transactionStatus)
