@@ -2,7 +2,7 @@ orya:
   name: orya-api-secret
   cluster_name: ""
   orya_site:
-    url: "https://msapi.sandbox.docphq.tech"
+    url: "https://msapi.sandbox.orya.tech"
   data:
     ORYA_API_KEY: orya-api-client-here  
     TAGS:
