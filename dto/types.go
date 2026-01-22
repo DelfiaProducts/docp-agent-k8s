@@ -134,6 +134,7 @@ type K8sRegister struct {
 // K8sRegisterMetadata is struct for metadata the register
 type K8sRegisterMetadata struct {
 	ComputeInfo K8sRegisterPlataform `json:"compute_info"`
+	VendorsInfo VendorInfo           `json:"vendors_info"`
 }
 
 // K8sRegisterPlataform is struct for platform the metadata register
@@ -197,4 +198,28 @@ type VendorInstalled struct {
 	Namespace string         `json:"namespace"`
 	Mode      string         `json:"mode"`
 	Configs   map[string]any `json:"configs"`
+}
+
+// VendorInfo is struct for vendor infos
+type VendorInfo struct {
+	Datadog DatadogInfos `json:"datadog"`
+}
+
+// DatadogInfos is struct for datadog infos
+type DatadogInfos struct {
+	ClusterName                   string `json:"cluster_name"`
+	HostId                        string `json:"host_id"`
+	Hostname                      string `json:"hostname"`
+	KernelArch                    string `json:"kernel_arch"`
+	KernelVersion                 string `json:"kernel_version"`
+	Os                            string `json:"os"`
+	Platform                      string `json:"platform"`
+	PlatformFamily                string `json:"platform_family"`
+	PlatformVersion               string `json:"platform_version"`
+	AgentVersion                  string `json:"agent_version"`
+	Flavor                        string `json:"flavor"`
+	InfrastructureMode            string `json:"infrastructure_mode"`
+	InstallMethodInstallerVersion string `json:"install_method_installer_version"`
+	InstallMethodTool             string `json:"install_method_tool"`
+	InstallMethodToolVersion      string `json:"install_method_tool_version"`
 }
