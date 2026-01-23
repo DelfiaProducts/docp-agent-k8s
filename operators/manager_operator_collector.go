@@ -1,19 +1,25 @@
 package operators
 
 import (
+	"bytes"
 	"context"
 	defaultErrors "errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/OryaHub/agent-k8s/dto"
 	pkg "github.com/OryaHub/agent-k8s/pkg"
+	"github.com/OryaHub/agent-k8s/utils"
 	corev1 "k8s.io/api/core/v1"
 	rbcav1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 // GetCurrentHelmChartVersion return the current helm chart version
@@ -156,7 +162,34 @@ func (m *ManagerOperator) CollectMetadataK8s() (dto.K8sRegister, error) {
 		return dto.K8sRegister{}, err
 	}
 	registerData.Metadata.ComputeInfo.PlatformArch = arch
+	ns, err := m.GetNamespaces()
+	if err != nil {
+		return dto.K8sRegister{}, err
+	}
+	vendor, err := m.DatadogAlreadyInstalled("datadog", ns)
+	if err != nil {
+		return dto.K8sRegister{}, err
+	}
+
+	if vendor.Installed {
+		//collect vendor infos
+		vendorInfos, err := m.GetVendorInfos("datadog", vendor.Namespace)
+		if err != nil {
+			return dto.K8sRegister{}, err
+		}
+		registerData.Metadata.VendorsInfo = vendorInfos
+	}
 	return registerData, nil
+}
+
+// GetVendorInfos return vendor infos
+func (m *ManagerOperator) GetVendorInfos(name, namespace string) (dto.VendorInfo, error) {
+	switch name {
+	case "datadog":
+		return m.geDatadogInfos(namespace)
+	default:
+		return dto.VendorInfo{}, fmt.Errorf("vendor %s not supported", name)
+	}
 }
 
 // getServiceName return service name from envs
@@ -268,4 +301,108 @@ func (m *ManagerOperator) getNodeNames() ([]string, error) {
 		nodesNames = append(nodesNames, node.Name)
 	}
 	return nodesNames, nil
+}
+
+// geDatadogInfos return datadog infos
+func (m *ManagerOperator) geDatadogInfos(namespace string) (dto.VendorInfo, error) {
+	var vendorInfos dto.VendorInfo
+	ctx := context.Background()
+	clientset, err := kubernetes.NewForConfig(m.kubeClient.Config)
+	if err != nil {
+		return dto.VendorInfo{}, err
+	}
+	pods, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return dto.VendorInfo{}, err
+	}
+	var podFound corev1.Pod
+	for _, pod := range pods.Items {
+		if strings.HasPrefix(pod.ObjectMeta.Name, "datadog-agent") {
+			podFound = pod
+			break
+		}
+	}
+	if podFound.ObjectMeta.Name != "" {
+		out, err := m.execInPod(namespace, podFound.ObjectMeta.Name, "agent", []string{"agent", "status"})
+		if err != nil {
+			return dto.VendorInfo{}, err
+		}
+		output := utils.RemoveLinesByPrefix([]string{"ERROR", "Error"}, out)
+		datadogInfos := dto.DatadogInfos{
+			ClusterName:                   utils.ParseValueByPrefix(output, "cluster-name:"),
+			HostId:                        utils.ParseValueByPrefix(output, "hostId:"),
+			Hostname:                      utils.ParseValueByPrefix(output, "hostname:"),
+			KernelArch:                    utils.ParseValueByPrefix(output, "kernelArch:"),
+			KernelVersion:                 utils.ParseValueByPrefix(output, "kernelVersion:"),
+			Os:                            utils.ParseValueByPrefix(output, "os:"),
+			Platform:                      utils.ParseValueByPrefix(output, "platform:"),
+			PlatformFamily:                utils.ParseValueByPrefix(output, "platformFamily:"),
+			PlatformVersion:               utils.ParseValueByPrefix(output, "platformVersion:"),
+			AgentVersion:                  utils.ParseValueByPrefix(output, "agent_version:"),
+			Flavor:                        utils.ParseValueByPrefix(output, "flavor:"),
+			InfrastructureMode:            utils.ParseValueByPrefix(output, "infrastructure_mode:"),
+			InstallMethodInstallerVersion: utils.ParseValueByPrefix(output, "install_method_installer_version:"),
+			InstallMethodTool:             utils.ParseValueByPrefix(output, "install_method_tool:"),
+			InstallMethodToolVersion:      utils.ParseValueByPrefix(output, "install_method_tool_version:"),
+		}
+		vendorInfos.Datadog = datadogInfos
+	}
+
+	return vendorInfos, nil
+}
+
+// execInPod execute command in pod and return output
+func (m *ManagerOperator) execInPod(namespace, pod, container string, command []string) (string, error) {
+
+	clientset, err := kubernetes.NewForConfig(m.kubeClient.Config)
+	if err != nil {
+		return "", err
+	}
+
+	req := clientset.CoreV1().RESTClient().
+		Post().
+		Resource("pods").
+		Name(pod).
+		Namespace(namespace).
+		SubResource("exec")
+
+	req.VersionedParams(&corev1.PodExecOptions{
+		Container: container,
+		Command:   command,
+		Stdout:    true,
+		Stderr:    true,
+		TTY:       false,
+	}, scheme.ParameterCodec)
+
+	var stdout, stderr bytes.Buffer
+
+	exec, err := remotecommand.NewSPDYExecutor(
+		m.kubeClient.Config,
+		"POST",
+		req.URL(),
+	)
+	if err != nil {
+		return "", err
+	}
+
+	err = exec.StreamWithContext(
+		context.Background(),
+		remotecommand.StreamOptions{
+			Stdout: &stdout,
+			Stderr: &stderr,
+		},
+	)
+
+	if err != nil {
+		return "", fmt.Errorf(
+			"exec error: %w | stderr: %s",
+			err, stderr.String(),
+		)
+	}
+
+	if stderr.Len() > 0 {
+		return stdout.String(), fmt.Errorf("%s", stderr.String())
+	}
+
+	return stdout.String(), nil
 }
