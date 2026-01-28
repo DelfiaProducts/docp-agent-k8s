@@ -57,6 +57,8 @@ rules:
         "nodes/proxy",
         "nodes/spec",
         "nodes/stats",
+        "pods/exec",
+        "pods/log",
       ]
     verbs: ["create", "get", "list", "update", "watch", "delete", "patch"]
   - apiGroups: ["admissionregistration.k8s.io"]

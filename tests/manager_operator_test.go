@@ -469,3 +469,41 @@ func TestManagerOperatorDatadogAlreadyInstalled(t *testing.T) {
 		})
 	})
 }
+
+func TestManagerOperatorGetVendorInfos(t *testing.T) {
+	bdd.Feature(t, "Instanciar o manager operator", func(t *testing.T, scenario func(description string, steps func(s *bdd.Scenario))) {
+		scenario("criar logger pra passar pro operator", func(s *bdd.Scenario) {
+			var logger *utils.K8sLogger
+			var err error
+			var operator *operators.ManagerOperator
+			var vendorInfos dto.VendorInfo
+
+			s.Given("que eu tenho um logger", func() {
+				logger = utils.NewK8sLoggerText(os.Stdout)
+			})
+			s.When("eu instancio o operator", func() {
+				operator = operators.NewManagerOperator(logger)
+				bdd.AssertIsNotNil(t, operator, "operator não pode ser nullo")
+			})
+
+			s.When("configurar o operator", func() {
+				err = operator.Setup()
+				bdd.AssertNoError(t, err, "operator configurado sem erro")
+			})
+			s.Then("o operator deve ser instanciado com o logger normalmente", func(t *testing.T) {
+				bdd.AssertIsNotNil(t, operator, "o operator deve ser diferente de nil")
+			})
+
+			s.When("eu busco vendor infos", func() {
+				vendorInfos, err = operator.GetVendorInfos("datadog", "default")
+				bdd.AssertNoError(t, err, "não tivemos erro na busca de vendor infos")
+			})
+			s.Then("os vendor infos precisam existir", func(t *testing.T) {
+				bdd.AssertIsNotNil(t, vendorInfos, "o vendor infos precisa ser diferente de nil")
+			})
+
+			bdd.Printf("OPERATOR: %+v\n", operator)
+			bdd.Printf("VENDOR INFOS: %+v\n", vendorInfos)
+		})
+	})
+}
