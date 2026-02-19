@@ -80,6 +80,20 @@ func (k *K8sManager) handlerRegister() error {
 				if err := k.updateConfigMap(k.configMapConfigurationsName, k.namespace, configMapConfiguration.Data); err != nil {
 					return err
 				}
+			case 400:
+				isRateLimit, err := k.operator.ValidateRateLimitInstallAgentError(resp)
+				if err != nil {
+					return err
+				}
+				if isRateLimit {
+					k.logger.Debug("response from register create", "statusCode", statusCode, "resp", string(resp))
+					if err := k.operator.AutoUninstall(k.namespace); err != nil {
+						return err
+					}
+					if err := k.operator.RemoveOryaNamespace(k.namespace); err != nil {
+						return err
+					}
+				}
 			default:
 				k.logger.Debug("response from register create", "statusCode", statusCode, "resp", string(resp))
 				if k.retryRegister <= k.maxRetry {
@@ -89,7 +103,6 @@ func (k *K8sManager) handlerRegister() error {
 		} else {
 			if token, ok := configMapConfiguration.Data["access_token"]; ok {
 				resp, statusCode, err := k.operator.ExecuteRegisterCall("update", metadata, apiKey, token)
-				// validar status code pra salvar dados no config map de configurations
 				if err != nil {
 					return err
 				}
