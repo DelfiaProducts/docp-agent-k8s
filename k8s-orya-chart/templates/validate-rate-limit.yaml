@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: validate-usage-limit
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: validate
+          image: curlimages/curl:latest
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              
+              echo "Starting validation process..."
+              
+              oryaSite="{{ .Values.orya.orya_site.url | default "https://msapi.orya.tech" }}"
+              url="$oryaSite/usage-tracking/usage-limit/orya/check"
+              
+              resp=$(curl -s "$url" -H "docp-api-key: {{ .Values.orya.data.ORYA_API_KEY }}")
+              
+              has_limit=$(echo "$resp" | grep -o '"has_limit":[^,]*' | cut -d: -f2)
+              current_usage=$(echo "$resp" | grep -o '"current_usage":[^,]*' | cut -d: -f2)
+              limit=$(echo "$resp" | grep -o '"limit":[^,]*' | cut -d: -f2)
+                            
+              if [[ "$has_limit" == "" ]]; then
+                echo "Failed check usage limit"
+                exit 1
+              elif [[ "$has_limit" == "false" ]]; then
+                echo "Usage limit exceeded: Cannot install the agent."
+                echo "Current limit: $limit"
+                exit 1
+              fi
+              
+              echo "Validation succeeded"
+              exit 0
