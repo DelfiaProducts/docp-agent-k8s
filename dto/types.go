@@ -151,6 +151,18 @@ type K8sRegisterResponse struct {
 // K8sStateCheckPayload is struct for payload to state check
 type K8sStateCheckPayload struct{}
 
+// StateCheckRequestResponse is struct for response the state check
+type StateCheckRequestResponseErrorDetail struct {
+	ErrorId string `json:"error_id"`
+	Service string `json:"service"`
+	Message string `json:"message"`
+}
+
+// StateCheckRequestResponseError is struct for response error the state check
+type StateCheckRequestResponseError struct {
+	Detail StateCheckRequestResponseErrorDetail `json:"detail"`
+}
+
 // K8sAuthPayload is struct for auth payload
 type K8sAuthPayload struct {
 	ApiKey    string `json:"api_key"`

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/OryaHub/agent-k8s/dto"
+	"github.com/OryaHub/agent-k8s/pkg"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -98,6 +99,20 @@ func (m *ManagerOperator) VerifyDatadogResourceExists(resourceName, namespace st
 // IsLocked return if operator locked for send transactions events
 func (m *ManagerOperator) IsLockedEvents() bool {
 	return m.LockedEvents
+}
+
+// ValidateDuplicatedSignal execute validate rate limit for install agent
+func (m *ManagerOperator) ValidateRateLimitInstallAgentError(data []byte) (bool, error) {
+	var response dto.StateCheckRequestResponseError
+	if err := m.json.Unmarshall(data, &response); err != nil {
+		return false, err
+	}
+
+	if response.Detail.ErrorId == pkg.ErrIdRateLimitInstallAgent && response.Detail.Service == pkg.ErrServiceRateLimitInstallAgent && strings.Contains(response.Detail.Message, pkg.ErrMsgRateLimitInstallAgent) {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // verifyAndUpdateLockedEvents verify and update locked events variable
