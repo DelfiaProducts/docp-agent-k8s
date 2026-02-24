@@ -8,6 +8,8 @@ type K8sConfig struct {
 type K8sConfigSignal struct {
 	TypeSignal         string                     `json:"type"`
 	TraceID            string                     `json:"trace_id"`
+	Mode               string                     `json:"mode"`
+	Sleep              int                        `json:"sleep"`
 	RemoveOtherVendors []string                   `json:"remove_other_vendors"`
 	Duration           string                     `json:"duration"`
 	Agents             K8sConfigSignalAgents      `json:"agents"`
@@ -57,6 +59,8 @@ type K8sSignal struct {
 	TypeSignal         string
 	Version            string
 	Duration           string
+	Mode               string
+	Sleep              int
 	RemoveOtherVendors []string
 	Vendor             K8sSignalVendor
 	Action             K8sAction
