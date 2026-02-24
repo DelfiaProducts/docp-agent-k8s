@@ -16,7 +16,7 @@ COPY . .
 COPY go.mod .
 COPY go.sum .
 # Compila para um binário estático
-RUN CGO_ENABLED=0 GOOS=linux go build -o app ./updater/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o updater ./updater/main.go
 
 # Estágio final - imagem mínima para execução
 FROM alpine:3.18
@@ -32,13 +32,13 @@ RUN apk update && apk add --no-cache ca-certificates
 WORKDIR /app
 
 # Copia apenas o binário compilado do estágio anterior
-COPY --from=builder /app/app .
+COPY --from=builder /app/updater .
 
 # Expõe a porta da aplicação
 EXPOSE 8080
 
-# Garante que o binário 'app' tem permissão de execução
-RUN chmod +x ./app
+# Garante que o binário 'updater' tem permissão de execução
+RUN chmod +x ./updater
 
 # Define o comando de inicialização
-CMD ["./app"]
+CMD ["./updater"]
