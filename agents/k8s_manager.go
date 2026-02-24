@@ -29,6 +29,8 @@ type K8sManager struct {
 	maxRetry                    int
 	version                     string
 	delay                       time.Duration
+	intervalGetSignal           time.Duration
+	tickerSignal                *time.Ticker
 }
 
 // NewK8sManager return instance of k8s manager
@@ -43,6 +45,7 @@ func NewK8sManager(logger *utils.K8sLogger) *K8sManager {
 		retryRegister:               0,
 		maxRetry:                    10,
 		delay:                       time.Second * 1,
+		intervalGetSignal:           time.Minute * 1,
 	}
 }
 
@@ -73,6 +76,8 @@ func (k *K8sManager) Initialize() error {
 		k.logger.Error("initialize populate version", "error", err.Error())
 		return err
 	}
+	ticker := time.NewTicker(k.intervalGetSignal)
+	k.tickerSignal = ticker
 	return nil
 }
 
