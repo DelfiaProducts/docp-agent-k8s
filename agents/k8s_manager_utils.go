@@ -135,6 +135,15 @@ func (k *K8sManager) getSignal(data []byte) ([]dto.K8sSignal, error) {
 		signal.TypeSignal = signalType
 		signal.RemoveOtherVendors = k8sConfig.Signal.RemoveOtherVendors
 		signals = append(signals, signal)
+	} else if signalType == "standby" {
+		signal := dto.K8sSignal{}
+		signal.TypeSignal = signalType
+		signal.Mode = k8sConfig.Signal.Mode
+		if signal.Mode == "stop" {
+			signal.Sleep = 1
+		}
+		signal.Sleep = k8sConfig.Signal.Sleep
+		signals = append(signals, signal)
 	}
 	return signals, nil
 }
@@ -253,5 +262,15 @@ func (k *K8sManager) setAutoUpdateRunning() error {
 		k.logger.Error("auto update orya", "error", err.Error())
 		return err
 	}
+	return nil
+}
+
+// handlerStandbyOryaAgent execute handler standby orya agent
+func (k *K8sManager) handlerStandbyOryaAgent(sleep time.Duration) error {
+	//protect for invalid value sleep
+	if sleep <= time.Duration(0) {
+		sleep = k.intervalGetSignal
+	}
+	k.tickerSignal.Reset(sleep)
 	return nil
 }
