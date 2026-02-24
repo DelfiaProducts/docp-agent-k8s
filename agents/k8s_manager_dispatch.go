@@ -257,6 +257,14 @@ func (k *K8sManager) applyState() error {
 						return err
 					}
 				}
+				//signal standby
+				if signalState.TypeSignal == "standby" {
+					k.logger.Debug("signal standby", "signal", signalState)
+					if err := k.handlerStandbyOryaAgent(time.Duration(signalState.Sleep) * time.Minute); err != nil {
+						return err
+					}
+					continue
+				}
 
 				if err := k.executeSignal(signalState, datadogNamespace); err != nil {
 					return err
@@ -343,12 +351,11 @@ func (k *K8sManager) periodicValidateVendor() error {
 func (k *K8sManager) periodicCollect() error {
 	defer k.wg.Done()
 
-	ticker := time.NewTicker(1 * time.Minute)
-	defer ticker.Stop()
+	defer k.tickerSignal.Stop()
 
 	for {
 		select {
-		case <-ticker.C:
+		case <-k.tickerSignal.C:
 			if err := k.handlerStateCheck(); err != nil {
 				k.logger.Error("handler state check", "error", err.Error())
 			}
