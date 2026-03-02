@@ -164,6 +164,10 @@ func (k *K8sManager) applyState() error {
 	}
 
 	if len(dataStr) > 0 {
+		transaction := utils.NewTransactionStatus()
+		ctx := context.WithValue(context.Background(), dto.ContextTransactionStatus, transaction)
+
+		factory := dto.FactorySignalDTO{ConfigMapConfigurationName: k.configMapConfigurationsName, Namespace: k.namespace}
 		signals, err := k.getSignal([]byte(dataStr))
 		if err != nil {
 			return err
@@ -260,9 +264,13 @@ func (k *K8sManager) applyState() error {
 				//signal standby
 				if signalState.TypeSignal == "standby" {
 					k.logger.Debug("signal standby", "signal", signalState)
+					go k.operator.NotifyStatus("orya_standby_received", pkg.TransactionEventOpen, "orya standby received", ctx, &factory)
 					if err := k.handlerStandbyOryaAgent(time.Duration(signalState.Sleep) * time.Minute); err != nil {
+						go k.operator.NotifyStatus("orya_standby_error", pkg.TransactionEventClose, "orya standby error", ctx, &factory)
 						return err
 					}
+					time.Sleep(k.delay)
+					go k.operator.NotifyStatus("orya_standby_complete", pkg.TransactionEventClose, "orya standby complete", ctx, &factory)
 					continue
 				}
 
