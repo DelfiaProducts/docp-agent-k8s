@@ -75,7 +75,7 @@ func (m *ManagerOperator) SignalUpdateVendor(ctx context.Context, factorySignal 
 			return err
 		}
 		datadogHash := configMapConfiguration.Data["datadog_hash"]
-		datadogSignalContentHash := utils.GenerateHashMd5([]byte(factorySignal.Signal.Vendor.Content))
+		datadogSignalContentHash := utils.GenerateDatadogHash(factorySignal.Signal.Vendor.Content, factorySignal.Signal.Vendor.HostTags)
 		if exists && datadogHash != datadogSignalContentHash {
 			goNext = true
 		}
@@ -226,7 +226,7 @@ func (m *ManagerOperator) DatadogUpdate(ctx context.Context, factorySignal *dto.
 						go m.NotifyStatus("uninstall_orya_vendor_error", pkg.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
 						return err
 					}
-					configMapConfiguration.Data["datadog_hash"] = utils.GenerateHashMd5([]byte(factorySignal.Signal.Vendor.Content))
+					configMapConfiguration.Data["datadog_hash"] = utils.GenerateDatadogHash(factorySignal.Signal.Vendor.Content, factorySignal.Signal.Vendor.HostTags)
 					if err := m.UpdateConfigMap(m.configMapConfigurationsName, m.namespace, configMapConfiguration.Data); err != nil {
 						go m.NotifyStatus("uninstall_orya_vendor_error", pkg.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
 						return err
@@ -241,7 +241,7 @@ func (m *ManagerOperator) DatadogUpdate(ctx context.Context, factorySignal *dto.
 						go m.NotifyStatus("update_orya_vendor__error", pkg.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
 						return err
 					}
-					configMapConfiguration.Data["datadog_hash"] = utils.GenerateHashMd5([]byte(factorySignal.Signal.Vendor.Content))
+					configMapConfiguration.Data["datadog_hash"] = utils.GenerateDatadogHash(factorySignal.Signal.Vendor.Content, factorySignal.Signal.Vendor.HostTags)
 					if err := m.UpdateConfigMap(m.configMapConfigurationsName, m.namespace, configMapConfiguration.Data); err != nil {
 						go m.NotifyStatus("uninstall_orya_vendor_error", pkg.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
 						return err
