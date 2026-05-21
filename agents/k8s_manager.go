@@ -101,93 +101,97 @@ func (k *K8sManager) AutoUpdateDatadog() error {
 		if err := json.Unmarshal([]byte(received), &k8sConfig); err != nil {
 			return err
 		}
-		if k8sConfig.Signal.TypeSignal == "update" {
+		if k8sConfig.Signal.TypeSignal == "update" && k8sConfig.Signal.Agents.DatadogAgent.AutoUpdate {
 			datadog := k8sConfig.Signal.Agents.DatadogAgent
 			version := datadog.Version
-			if version == "latest" {
-				//update agent
-				k.logger.Debug("execute auto update version datadog", "timestamp", time.Now())
-				//update repository
-				if err := k.operator.UpdateChartRepository(); err != nil {
-					k.logger.Error("failed to update helm repository", "error", err.Error())
-					return err
-				}
-				//get release mode datadog
-				releaseMode, err := k.operator.GetReleaseModeDatadog(k.namespace)
-				if err != nil {
-					k.logger.Error("failed to get release mode datadog", "error", err.Error())
-					return err
-				}
-				k.logger.Debug("release mode datadog", "releaseMode", releaseMode)
-				var chartName string
-				switch releaseMode {
-				case "helm":
-					chartName = "datadog"
-				case "operator":
-					chartName = "datadog-operator"
-				}
-				//get release name the datadog
-				releaseName, err := k.operator.GetReleaseName(k.namespace, chartName)
-				if err != nil {
-					k.logger.Error("failed to get release name datadog", "error", err.Error())
-					return err
-				}
-				k.logger.Debug("release name datadog", "releaseName", releaseName)
-				//validate if already updated
-				currentChartVersion, err := k.operator.GetCurrentHelmChartVersion(k.namespace, releaseName)
-				if err != nil {
-					k.logger.Error("failed to get current helm chart version", "error", err.Error())
-					return err
-				}
 
-				latestChartVersion, err := k.operator.GetLatestHelmChartVersion(k.namespace, releaseName)
-				if err != nil {
-					k.logger.Error("failed to get latest helm chart version", "error", err.Error())
-					return err
-				}
-
-				k.logger.Debug("current helm chart version", "version", currentChartVersion)
-				k.logger.Debug("latest helm chart version", "version", latestChartVersion)
-
-				updated := k.operator.ValidateVersionHelmAlreadyUpdated(currentChartVersion, latestChartVersion)
-				k.logger.Debug("validate if helm chart version is already updated", "updated", updated)
-				if updated {
-					k.logger.Debug("version is already updated", "version", version)
-					return nil
-				}
-				content := datadog.DeployYml
-				apiKey := datadog.ApiKey
-				appKey := datadog.AppKey
-				datadogNamespace := configurations.Data["datadog_namespace"]
-
-				datadogDto := dto.DatadogDTO{
-					Content:          content,
-					DatadogNamespace: datadogNamespace,
-					Namespace:        k.namespace,
-					ApiKey:           apiKey,
-					AppKey:           appKey,
-					Version:          version,
-				}
-
-				//apply update the datadog
-				if err := k.operator.UpdateDatadogConfigurations(releaseMode, datadogDto); err != nil {
-					k.logger.Error("failed to update datadog configurations", "error", err.Error())
-					return err
-				}
-
-				//create transaction
-				transaction := utils.NewTransactionStatus()
-				factorySignal := &dto.FactorySignalDTO{
-					Namespace:                  k.namespace,
-					ConfigMapConfigurationName: k.configMapConfigurationsName,
-				}
-				ctx := context.WithValue(context.Background(), dto.ContextTransactionStatus, transaction)
-				go k.operator.NotifyStatus("auto_update_orya_received", pkg.TransactionEventUpdate, "update orya received", ctx, factorySignal)
-
-				//update repository
-
-				go k.operator.NotifyStatus("auto_update_orya_completed", pkg.TransactionEventClose, "update orya completed", ctx, factorySignal)
+			//update agent
+			k.logger.Debug("execute auto update version datadog", "timestamp", time.Now())
+			//update repository
+			if err := k.operator.UpdateChartRepository(); err != nil {
+				k.logger.Error("failed to update helm repository", "error", err.Error())
+				return err
 			}
+			//get release mode datadog
+			releaseMode, err := k.operator.GetReleaseModeDatadog(k.namespace)
+			if err != nil {
+				k.logger.Error("failed to get release mode datadog", "error", err.Error())
+				return err
+			}
+			k.logger.Debug("release mode datadog", "releaseMode", releaseMode)
+			var chartName string
+			switch releaseMode {
+			case "helm":
+				chartName = "datadog"
+			case "operator":
+				chartName = "datadog-operator"
+			}
+			//get release name the datadog
+			releaseName, err := k.operator.GetReleaseName(k.namespace, chartName)
+			if err != nil {
+				k.logger.Error("failed to get release name datadog", "error", err.Error())
+				return err
+			}
+			k.logger.Debug("release name datadog", "releaseName", releaseName)
+			//validate if already updated
+			currentChartVersion, err := k.operator.GetCurrentHelmChartVersion(k.namespace, releaseName)
+			if err != nil {
+				k.logger.Error("failed to get current helm chart version", "error", err.Error())
+				return err
+			}
+
+			latestChartVersion, err := k.operator.GetLatestHelmChartVersion(k.namespace, releaseName)
+			if err != nil {
+				k.logger.Error("failed to get latest helm chart version", "error", err.Error())
+				return err
+			}
+
+			k.logger.Debug("current helm chart version", "version", currentChartVersion)
+			k.logger.Debug("latest helm chart version", "version", latestChartVersion)
+
+			updated := k.operator.ValidateVersionHelmAlreadyUpdated(currentChartVersion, latestChartVersion)
+			k.logger.Debug("validate if helm chart version is already updated", "updated", updated)
+			if updated {
+				k.logger.Debug("version is already updated", "version", version)
+				return nil
+			}
+			if version == "latest" {
+				version = latestChartVersion
+			}
+			content := datadog.DeployYml
+			apiKey := datadog.ApiKey
+			appKey := datadog.AppKey
+			datadogNamespace := configurations.Data["datadog_namespace"]
+
+			datadogDto := dto.DatadogDTO{
+				Content:          content,
+				DatadogNamespace: datadogNamespace,
+				Namespace:        k.namespace,
+				ApiKey:           apiKey,
+				AppKey:           appKey,
+				Version:          version,
+				HostTags:         k8sConfig.Signal.HostTags,
+			}
+
+			//apply update the datadog
+			if err := k.operator.UpdateDatadogConfigurations(releaseMode, datadogDto); err != nil {
+				k.logger.Error("failed to update datadog configurations", "error", err.Error())
+				return err
+			}
+
+			//create transaction
+			transaction := utils.NewTransactionStatus()
+			factorySignal := &dto.FactorySignalDTO{
+				Namespace:                  k.namespace,
+				ConfigMapConfigurationName: k.configMapConfigurationsName,
+			}
+			ctx := context.WithValue(context.Background(), dto.ContextTransactionStatus, transaction)
+			go k.operator.NotifyStatus("auto_update_orya_received", pkg.TransactionEventUpdate, "update orya received", ctx, factorySignal)
+
+			//update repository
+
+			go k.operator.NotifyStatus("auto_update_orya_completed", pkg.TransactionEventClose, "update orya completed", ctx, factorySignal)
+
 		}
 	}
 	k.logger.Debug("auto update datadog", "configState", configState)
@@ -210,58 +214,62 @@ func (k *K8sManager) AutoUpdateOrya() error {
 		if err := json.Unmarshal([]byte(received), &k8sConfig); err != nil {
 			return err
 		}
-		if k8sConfig.Signal.TypeSignal == "update" {
+		if k8sConfig.Signal.TypeSignal == "update" && k8sConfig.Signal.Agents.OryaAgent.AutoUpdate {
 			agent := k8sConfig.Signal.Agents.OryaAgent
 			version := agent.Version
-			if version == "latest" {
-				//update agent
-				k.logger.Debug("execute auto update version agent", "timestamp", time.Now())
-				//update repository
-				if err := k.operator.UpdateChartRepository(); err != nil {
-					k.logger.Error("failed to update helm repository", "error", err.Error())
-					return err
-				}
-				//validate if already updated
-				currentChartVersion, err := k.operator.GetCurrentHelmChartVersion(k.namespace, utils.GetOryaReleaseName())
-				if err != nil {
-					k.logger.Error("failed to get current helm chart version", "error", err.Error())
-					return err
-				}
 
-				latestChartVersion, err := k.operator.GetLatestHelmChartVersion(k.namespace, utils.GetOryaReleaseName())
-				if err != nil {
-					k.logger.Error("failed to get latest helm chart version", "error", err.Error())
-					return err
-				}
-
-				k.logger.Debug("current helm chart version", "version", currentChartVersion)
-				k.logger.Debug("latest helm chart version", "version", latestChartVersion)
-
-				updated := k.operator.ValidateVersionHelmAlreadyUpdated(currentChartVersion, latestChartVersion)
-				k.logger.Debug("validate if helm chart version is already updated", "updated", updated)
-				if updated {
-					k.logger.Debug("version is already updated", "version", version)
-					return nil
-				}
-
-				//create transaction
-				transaction := utils.NewTransactionStatus()
-				factorySignal := &dto.FactorySignalDTO{
-					Namespace:                  k.namespace,
-					ConfigMapConfigurationName: k.configMapConfigurationsName,
-				}
-				ctx := context.WithValue(context.Background(), dto.ContextTransactionStatus, transaction)
-				go k.operator.NotifyStatus("auto_update_orya_received", pkg.TransactionEventUpdate, "update orya received", ctx, factorySignal)
-
-				//update repository
-				job := templates.TemplateJobAutoUpdateHelmRelease(k.namespace, utils.GetOryaReleaseName(), utils.GetHelmRepository(), latestChartVersion, utils.GetOryaUpdaterRepositoryName(latestChartVersion))
-				if err := k.operator.CreateJob(k.namespace, &job); err != nil {
-					k.logger.Error("failed to create job", "error", err.Error())
-					go k.operator.NotifyStatus("auto_update_orya_error", pkg.TransactionEventClose, "failed update orya", ctx, factorySignal)
-					return err
-				}
-				go k.operator.NotifyStatus("auto_update_orya_completed", pkg.TransactionEventClose, "update orya completed", ctx, factorySignal)
+			//update agent
+			k.logger.Debug("execute auto update version agent", "timestamp", time.Now())
+			//update repository
+			if err := k.operator.UpdateChartRepository(); err != nil {
+				k.logger.Error("failed to update helm repository", "error", err.Error())
+				return err
 			}
+			//validate if already updated
+			currentChartVersion, err := k.operator.GetCurrentHelmChartVersion(k.namespace, utils.GetOryaReleaseName())
+			if err != nil {
+				k.logger.Error("failed to get current helm chart version", "error", err.Error())
+				return err
+			}
+
+			latestChartVersion, err := k.operator.GetLatestHelmChartVersion(k.namespace, utils.GetOryaReleaseName())
+			if err != nil {
+				k.logger.Error("failed to get latest helm chart version", "error", err.Error())
+				return err
+			}
+
+			k.logger.Debug("current helm chart version", "version", currentChartVersion)
+			k.logger.Debug("latest helm chart version", "version", latestChartVersion)
+
+			updated := k.operator.ValidateVersionHelmAlreadyUpdated(currentChartVersion, latestChartVersion)
+			k.logger.Debug("validate if helm chart version is already updated", "updated", updated)
+			if updated {
+				k.logger.Debug("version is already updated", "version", version)
+				return nil
+			}
+
+			if version == "latest" {
+				version = latestChartVersion
+			}
+
+			//create transaction
+			transaction := utils.NewTransactionStatus()
+			factorySignal := &dto.FactorySignalDTO{
+				Namespace:                  k.namespace,
+				ConfigMapConfigurationName: k.configMapConfigurationsName,
+			}
+			ctx := context.WithValue(context.Background(), dto.ContextTransactionStatus, transaction)
+			go k.operator.NotifyStatus("auto_update_orya_received", pkg.TransactionEventUpdate, "update orya received", ctx, factorySignal)
+
+			//update repository
+			job := templates.TemplateJobAutoUpdateHelmRelease(k.namespace, utils.GetOryaReleaseName(), utils.GetHelmRepository(), version, utils.GetOryaUpdaterRepositoryName(latestChartVersion))
+			if err := k.operator.CreateJob(k.namespace, &job); err != nil {
+				k.logger.Error("failed to create job", "error", err.Error())
+				go k.operator.NotifyStatus("auto_update_orya_error", pkg.TransactionEventClose, "failed update orya", ctx, factorySignal)
+				return err
+			}
+			go k.operator.NotifyStatus("auto_update_orya_completed", pkg.TransactionEventClose, "update orya completed", ctx, factorySignal)
+
 		}
 	}
 
