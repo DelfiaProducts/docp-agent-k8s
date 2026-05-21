@@ -258,7 +258,7 @@ func (k *K8sManager) applyState() error {
 					if err := k.executeAction(signalState.Action); err != nil {
 						return err
 					}
-					newDatadogHash := utils.GenerateHashMd5([]byte(signalState.Action.Content))
+					newDatadogHash := utils.GenerateDatadogHash(signalState.Action.Content, signalState.Action.HostTags)
 					configMapConfiguration.Data["datadog_hash"] = newDatadogHash
 					if err := k.updateConfigMap(k.configMapConfigurationsName, k.namespace, configMapConfiguration.Data); err != nil {
 						return err
