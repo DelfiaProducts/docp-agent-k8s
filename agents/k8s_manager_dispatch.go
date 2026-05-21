@@ -44,6 +44,7 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 				DatadogNamespace: datadogNamespace,
 				Version:          action.Version,
 				ApiKey:           action.Envs["apiKey"],
+				HostTags:         action.HostTags,
 			}
 			go k.operator.NotifyStatus("install_datadog_received", pkg.TransactionEventOpen, "install datadog received", ctx, &factory)
 			// execute cleaning last instalation datadog
@@ -65,6 +66,7 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 				DatadogNamespace: datadogNamespace,
 				Version:          action.Version,
 				ApiKey:           action.Envs["apiKey"],
+				HostTags:         action.HostTags,
 			}
 			go k.operator.NotifyStatus("install_datadog_received", pkg.TransactionEventOpen, "install datadog received", ctx, &factory)
 			// execute cleaning last instalation datadog
@@ -173,6 +175,7 @@ func (k *K8sManager) applyState() error {
 			return err
 		}
 		for _, signalState := range signals {
+			k.logger.Debug("apply state", "signalState", signalState)
 			if err := k.validateState(signalState); err != nil {
 				return err
 			}
@@ -255,7 +258,7 @@ func (k *K8sManager) applyState() error {
 					if err := k.executeAction(signalState.Action); err != nil {
 						return err
 					}
-					newDatadogHash := utils.GenerateHashMd5([]byte(signalState.Action.Content))
+					newDatadogHash := utils.GenerateDatadogHash(signalState.Action.Content, signalState.Action.HostTags)
 					configMapConfiguration.Data["datadog_hash"] = newDatadogHash
 					if err := k.updateConfigMap(k.configMapConfigurationsName, k.namespace, configMapConfiguration.Data); err != nil {
 						return err

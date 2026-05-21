@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/OryaHub/agent-k8s/dto"
+	"github.com/OryaHub/agent-k8s/utils"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	corev1 "k8s.io/api/core/v1"
@@ -34,7 +35,8 @@ func (a *AgentOperator) applyDatadogOperatorYml(datadogDto dto.DatadogDTO) error
 	if err := decoder.Decode(&datadogAgent); err != nil {
 		return err
 	}
-
+	applyHostTagsOperator(&datadogAgent, datadogDto.HostTags)
+	a.logger.Debug("datadog agent after apply host tags", "datadogAgent", datadogAgent)
 	gvr := schema.GroupVersionResource{
 		Group:    "datadoghq.com",
 		Version:  "v2alpha1",
@@ -133,6 +135,24 @@ func (a *AgentOperator) applyDatadogUpdateConfigOperator(datadogDto dto.DatadogD
 			return nil
 		}
 	}
+
+	// Busca as tags que já estão no CRD atual e as carrega no novo objeto,
+	// garantindo que tags locais tenham prioridade sobre as incoming (host_tags).
+	existingTags, _, _ := unstructured.NestedStringSlice(resource.Object, "spec", "global", "tags")
+	if len(existingTags) > 0 {
+		out := make([]interface{}, len(existingTags))
+		for i, t := range existingTags {
+			out[i] = t
+		}
+		_ = unstructured.SetNestedSlice(datadogAgent.Object, out, "spec", "global", "tags")
+	}
+	a.logger.Debug("existing tags", "tags", existingTags)
+	a.logger.Debug("host tags", "tags", datadogDto.HostTags)
+	a.logger.Debug("datadog agent before apply host tags", "datadogAgent", datadogAgent)
+
+	applyHostTagsOperator(&datadogAgent, datadogDto.HostTags)
+	a.logger.Debug("datadog agent after apply host tags", "datadogAgent", datadogAgent)
+
 	datadogAgent.SetResourceVersion(resource.GetResourceVersion())
 	_, errUpdate := clientset.Resource(gvr).Namespace(datadogDto.DatadogNamespace).Update(context.Background(), &datadogAgent, metav1.UpdateOptions{})
 	if errUpdate != nil {
@@ -187,6 +207,20 @@ func (a *AgentOperator) applyDatadogUpdateConfigHelm(datadogDto dto.DatadogDTO) 
 	if err != nil {
 		return err
 	}
+
+	// Busca as tags que já estão no release atual e as carrega no values novo,
+	// garantindo que tags locais tenham prioridade sobre as incoming (host_tags).
+	getValues := action.NewGetValues(actionConfig)
+	getValues.AllValues = true
+	existingReleaseValues, err := getValues.Run("datadog-agent")
+	if err == nil {
+		existingTags := extractTagsFromHelmValues(existingReleaseValues)
+		if len(existingTags) > 0 {
+			setTagsInHelmValues(values, existingTags)
+		}
+	}
+
+	applyHostTagsHelm(values, datadogDto.HostTags)
 
 	_, err = upgrade.Run("datadog-agent", chart, values)
 	if err != nil {
@@ -267,9 +301,114 @@ func (a *AgentOperator) installHelmChart(releaseName string, datadogDto dto.Data
 	if err != nil {
 		return err
 	}
+	applyHostTagsHelm(values, datadogDto.HostTags)
 
 	_, err = install.Run(chart, values)
 	return err
+}
+
+// extractTagsFromHelmValues reads datadog.tags from a Helm values map,
+// returning them as []string. Handles both []string and []interface{} formats.
+func extractTagsFromHelmValues(values map[string]interface{}) []string {
+	datadogRaw, ok := values["datadog"]
+	if !ok {
+		return nil
+	}
+	datadogMap, ok := datadogRaw.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	tagsRaw, ok := datadogMap["tags"]
+	if !ok {
+		return nil
+	}
+	var tags []string
+	switch v := tagsRaw.(type) {
+	case []string:
+		tags = v
+	case []interface{}:
+		for _, item := range v {
+			if s, ok := item.(string); ok {
+				tags = append(tags, s)
+			}
+		}
+	}
+	return tags
+}
+
+// setTagsInHelmValues writes tags into values["datadog"]["tags"] as []interface{},
+// creating the datadog map if it does not exist.
+func setTagsInHelmValues(values map[string]interface{}, tags []string) {
+	datadogRaw, ok := values["datadog"]
+	if !ok {
+		datadogRaw = map[string]interface{}{}
+	}
+	datadogMap, ok := datadogRaw.(map[string]interface{})
+	if !ok {
+		datadogMap = map[string]interface{}{}
+	}
+	out := make([]interface{}, len(tags))
+	for i, t := range tags {
+		out[i] = t
+	}
+	datadogMap["tags"] = out
+	values["datadog"] = datadogMap
+}
+
+// applyHostTagsHelm injects hostTags into the helm values map under datadog.tags,
+// merging with any existing tags using key-priority rules.
+func applyHostTagsHelm(values map[string]interface{}, hostTags []string) {
+	if len(hostTags) == 0 {
+		return
+	}
+	datadogRaw, ok := values["datadog"]
+	if !ok {
+		datadogRaw = map[string]interface{}{}
+	}
+	datadogMap, ok := datadogRaw.(map[string]interface{})
+	if !ok {
+		datadogMap = map[string]interface{}{}
+	}
+
+	var existing []string
+	if tagsRaw, ok := datadogMap["tags"]; ok {
+		switch v := tagsRaw.(type) {
+		case []string:
+			existing = v
+		case []interface{}:
+			for _, item := range v {
+				if s, ok := item.(string); ok {
+					existing = append(existing, s)
+				}
+			}
+		}
+	}
+
+	merged := utils.MergeTagSlices(existing, hostTags)
+
+	// Store as []interface{} to stay compatible with yaml/helm unmarshal output.
+	out := make([]interface{}, len(merged))
+	for i, t := range merged {
+		out[i] = t
+	}
+	datadogMap["tags"] = out
+	values["datadog"] = datadogMap
+}
+
+// applyHostTagsOperator injects hostTags into a DatadogAgent unstructured object
+// at spec.global.tags, merging with any existing tags using key-priority rules.
+func applyHostTagsOperator(obj *unstructured.Unstructured, hostTags []string) {
+	if len(hostTags) == 0 {
+		return
+	}
+	existing, _, _ := unstructured.NestedStringSlice(obj.Object, "spec", "global", "tags")
+	merged := utils.MergeTagSlices(existing, hostTags)
+	// SetNestedSlice requires []interface{}.
+	out := make([]interface{}, len(merged))
+	for i, t := range merged {
+		out[i] = t
+	}
+	_ = unstructured.SetNestedSlice(obj.Object, out, "spec", "global", "tags")
 }
 
 func (a *AgentOperator) installHelmChartOperatorDatadog(releaseName string, datadogDto dto.DatadogDTO) error {

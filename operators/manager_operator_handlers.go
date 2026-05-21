@@ -75,7 +75,7 @@ func (m *ManagerOperator) SignalUpdateVendor(ctx context.Context, factorySignal 
 			return err
 		}
 		datadogHash := configMapConfiguration.Data["datadog_hash"]
-		datadogSignalContentHash := utils.GenerateHashMd5([]byte(factorySignal.Signal.Vendor.Content))
+		datadogSignalContentHash := utils.GenerateDatadogHash(factorySignal.Signal.Vendor.Content, factorySignal.Signal.Vendor.HostTags)
 		if exists && datadogHash != datadogSignalContentHash {
 			goNext = true
 		}
@@ -221,12 +221,12 @@ func (m *ManagerOperator) DatadogUpdate(ctx context.Context, factorySignal *dto.
 			case "helm":
 				if modeVendor == "helm" {
 					go m.NotifyStatus("update_orya_vendor_processing", pkg.TransactionEventUpdate, "update orya vendor processing", ctx, factorySignal)
-					if err := m.UpdateDatadogConfigurations("helm", dto.DatadogDTO{DatadogNamespace: factorySignal.DatadogNamespace, Content: factorySignal.Signal.Vendor.Content, Version: factorySignal.Signal.Vendor.Version}); err != nil {
+					if err := m.UpdateDatadogConfigurations("helm", dto.DatadogDTO{DatadogNamespace: factorySignal.DatadogNamespace, Content: factorySignal.Signal.Vendor.Content, Version: factorySignal.Signal.Vendor.Version, HostTags: factorySignal.Signal.Vendor.HostTags}); err != nil {
 						m.logger.Error("execute update datadog with helm", "error", err.Error())
 						go m.NotifyStatus("uninstall_orya_vendor_error", pkg.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
 						return err
 					}
-					configMapConfiguration.Data["datadog_hash"] = utils.GenerateHashMd5([]byte(factorySignal.Signal.Vendor.Content))
+					configMapConfiguration.Data["datadog_hash"] = utils.GenerateDatadogHash(factorySignal.Signal.Vendor.Content, factorySignal.Signal.Vendor.HostTags)
 					if err := m.UpdateConfigMap(m.configMapConfigurationsName, m.namespace, configMapConfiguration.Data); err != nil {
 						go m.NotifyStatus("uninstall_orya_vendor_error", pkg.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
 						return err
@@ -236,12 +236,12 @@ func (m *ManagerOperator) DatadogUpdate(ctx context.Context, factorySignal *dto.
 			case "operator":
 				if modeVendor == "operator" {
 					go m.NotifyStatus("update_orya_vendor_processing", pkg.TransactionEventUpdate, "update orya vendor processing", ctx, factorySignal)
-					if err := m.UpdateDatadogConfigurations("operator", dto.DatadogDTO{DatadogNamespace: factorySignal.DatadogNamespace, Content: factorySignal.Signal.Vendor.Content, Version: factorySignal.Signal.Vendor.Version}); err != nil {
+					if err := m.UpdateDatadogConfigurations("operator", dto.DatadogDTO{DatadogNamespace: factorySignal.DatadogNamespace, Content: factorySignal.Signal.Vendor.Content, Version: factorySignal.Signal.Vendor.Version, HostTags: factorySignal.Signal.Vendor.HostTags}); err != nil {
 						m.logger.Error("execute update datadog with operator", "error", err.Error())
 						go m.NotifyStatus("update_orya_vendor__error", pkg.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
 						return err
 					}
-					configMapConfiguration.Data["datadog_hash"] = utils.GenerateHashMd5([]byte(factorySignal.Signal.Vendor.Content))
+					configMapConfiguration.Data["datadog_hash"] = utils.GenerateDatadogHash(factorySignal.Signal.Vendor.Content, factorySignal.Signal.Vendor.HostTags)
 					if err := m.UpdateConfigMap(m.configMapConfigurationsName, m.namespace, configMapConfiguration.Data); err != nil {
 						go m.NotifyStatus("uninstall_orya_vendor_error", pkg.TransactionEventClose, "failed update vendor configurations", ctx, factorySignal)
 						return err
