@@ -44,6 +44,7 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 				DatadogNamespace: datadogNamespace,
 				Version:          action.Version,
 				ApiKey:           action.Envs["apiKey"],
+				HostTags:         action.HostTags,
 			}
 			go k.operator.NotifyStatus("install_datadog_received", pkg.TransactionEventOpen, "install datadog received", ctx, &factory)
 			// execute cleaning last instalation datadog
@@ -65,6 +66,7 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 				DatadogNamespace: datadogNamespace,
 				Version:          action.Version,
 				ApiKey:           action.Envs["apiKey"],
+				HostTags:         action.HostTags,
 			}
 			go k.operator.NotifyStatus("install_datadog_received", pkg.TransactionEventOpen, "install datadog received", ctx, &factory)
 			// execute cleaning last instalation datadog
@@ -173,6 +175,7 @@ func (k *K8sManager) applyState() error {
 			return err
 		}
 		for _, signalState := range signals {
+			k.logger.Debug("apply state", "signalState", signalState)
 			if err := k.validateState(signalState); err != nil {
 				return err
 			}
