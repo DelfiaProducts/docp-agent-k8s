@@ -24,16 +24,18 @@ type K8sConfigSignalAgents struct {
 }
 
 type K8sConfigSignalOrya struct {
-	Version string `json:"version"`
+	Version    string `json:"version"`
+	AutoUpdate bool   `json:"auto_update"`
 }
 
 type K8sConfigSignalDatadogAgent struct {
-	Version   string `json:"version"`
-	Mode      string `json:"mode"`
-	Enabled   bool   `json:"enabled"`
-	DeployYml string `json:"deploy-yml"`
-	ApiKey    string `json:"api-key"`
-	AppKey    string `json:"app-key"`
+	Version    string `json:"version"`
+	Mode       string `json:"mode"`
+	Enabled    bool   `json:"enabled"`
+	AutoUpdate bool   `json:"auto_update"`
+	DeployYml  string `json:"deploy-yml"`
+	ApiKey     string `json:"api-key"`
+	AppKey     string `json:"app-key"`
 }
 
 // DatadogDTO is struct for dto the operations with datadog
