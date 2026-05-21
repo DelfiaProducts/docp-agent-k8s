@@ -57,8 +57,14 @@ rules:
         "nodes/proxy",
         "nodes/spec",
         "nodes/stats",
+        "nodes/configz",
+        "nodes/healthz",
+        "nodes/logs",
+        "nodes/pods",
         "pods/exec",
         "pods/log",
+        "pods/eviction",
+        "pods/resize",
       ]
     verbs: ["create", "get", "list", "update", "watch", "delete", "patch"]
   - apiGroups: ["admissionregistration.k8s.io"]
@@ -127,6 +133,7 @@ rules:
         "replicasets",
         "replicationcontrollers",
         "statefulsets",
+        "controllerrevisions",
       ]
     verbs: ["create", "get", "list", "watch", "delete", "update", "patch", "deletecollection"]
   - apiGroups: ["auto.gke.io"]
@@ -142,8 +149,8 @@ rules:
     resources: ["customresourcedefinitions"]
     verbs: ["create", "list", "get", "watch","patch","update", "delete"]
   - apiGroups: ["argoproj.io"]
-    resources: ["rollouts"]
-    verbs: ["list", "watch"]
+    resources: ["rollouts", "applications", "applicationsets"]
+    verbs: ["get", "list", "watch", "patch"]
   - apiGroups: ["datadoghq.com"]
     resources:
       [
@@ -212,4 +219,36 @@ rules:
         "subjectaccessreviews",
       ]
     verbs: ["create", "get", "list", "watch", "delete", "update", "patch"]
+
+  - apiGroups: ["eks.amazonaws.com"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+
+  - apiGroups: ["kustomize.toolkit.fluxcd.io"]
+    resources: ["kustomizations"]
+    verbs: ["get", "list", "watch"]
+
+  - apiGroups: ["source.toolkit.fluxcd.io"]
+    resources:
+      [
+        "buckets",
+        "externalartifacts",
+        "gitrepositories",
+        "helmcharts",
+        "helmrepositories",
+        "ocirepositories",
+      ]
+    verbs: ["get", "list", "watch"]
+
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["gatewayclasses", "gateways", "httproutes", "referencegrants"]
+    verbs: ["create", "delete", "get", "list", "patch", "watch"]
+
+  - apiGroups: ["gateway.envoyproxy.io"]
+    resources: ["envoyextensionpolicies"]
+    verbs: ["create", "delete", "get"]
+
+  - apiGroups: ["networking.istio.io"]
+    resources: ["envoyfilters"]
+    verbs: ["create", "delete", "get"]
 {{- end }}
