@@ -12,6 +12,7 @@ type K8sConfigSignal struct {
 	Sleep              int                        `json:"sleep"`
 	RemoveOtherVendors []string                   `json:"remove_other_vendors"`
 	Duration           string                     `json:"duration"`
+	HostTags           []string                   `json:"host_tags"`
 	Agents             K8sConfigSignalAgents      `json:"agents"`
 	Labels             K8sConfigSignalLabels      `json:"labels"`
 	Annotations        K8sConfigSignalAnnotations `json:"annotations"`
@@ -37,12 +38,13 @@ type K8sConfigSignalDatadogAgent struct {
 
 // DatadogDTO is struct for dto the operations with datadog
 type DatadogDTO struct {
-	Content          string `json:"content"`
-	Namespace        string `json:"namespace"`
-	DatadogNamespace string `json:"datadog_namespace"`
-	ApiKey           string `json:"api_key"`
-	AppKey           string `json:"app_key"`
-	Version          string `json:"version"`
+	Content          string   `json:"content"`
+	Namespace        string   `json:"namespace"`
+	DatadogNamespace string   `json:"datadog_namespace"`
+	ApiKey           string   `json:"api_key"`
+	AppKey           string   `json:"app_key"`
+	Version          string   `json:"version"`
+	HostTags         []string `json:"host_tags"`
 }
 
 // K8sAction is struct for actions
@@ -52,6 +54,7 @@ type K8sAction struct {
 	Content  string
 	Version  string
 	Envs     map[string]string
+	HostTags []string
 }
 
 // K8sSignal is struct for signal
@@ -68,10 +71,11 @@ type K8sSignal struct {
 
 // K8sSignalVendor is struct for vendor signal
 type K8sSignalVendor struct {
-	Name    string
-	Mode    string
-	Content string
-	Version string
+	Name     string
+	Mode     string
+	Content  string
+	Version  string
+	HostTags []string
 }
 
 type K8sSignalModifications struct {
