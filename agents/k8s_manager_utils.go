@@ -79,47 +79,45 @@ func (k *K8sManager) getSignal(data []byte) ([]dto.K8sSignal, error) {
 	k.logger.Debug("get signal", "signal", k8sSignal)
 	if signalType == "update" {
 		if len(k8sSignal.Agents.DatadogAgent.Version) > 0 {
-			if k8sSignal.Agents.DatadogAgent.Enabled {
-				signal := dto.K8sSignal{}
-				signal.TypeSignal = "update_vendor"
-				signal.Vendor.Name = "datadog"
-				signal.Vendor.Mode = k8sSignal.Agents.DatadogAgent.Mode
-				signal.Vendor.Content = k8sSignal.Agents.DatadogAgent.DeployYml
-				signal.Vendor.Version = k8sSignal.Agents.DatadogAgent.Version
-				signal.Vendor.HostTags = k8sSignal.HostTags
-				datadogAgentMode := k8sSignal.Agents.DatadogAgent.Mode
-				if datadogAgentMode == "helm" {
-					action = dto.K8sAction{
-						Action:   "install",
-						Provider: "datadog",
-						Content:  k8sSignal.Agents.DatadogAgent.DeployYml,
-						Version:  k8sSignal.Agents.DatadogAgent.Version,
-						HostTags: k8sSignal.HostTags,
-						Envs: map[string]string{
-							"apiKey":  k8sSignal.Agents.DatadogAgent.ApiKey,
-							"mode":    "helm",
-							"version": k8sSignal.Agents.DatadogAgent.Version,
-						},
-					}
-					signal.Action = action
-				} else if datadogAgentMode == "operator" {
-					action = dto.K8sAction{
-						Action:   "install",
-						Provider: "datadog",
-						Content:  k8sSignal.Agents.DatadogAgent.DeployYml,
-						Version:  k8sSignal.Agents.DatadogAgent.Version,
-						HostTags: k8sSignal.HostTags,
-						Envs: map[string]string{
-							"apiKey":  k8sSignal.Agents.DatadogAgent.ApiKey,
-							"mode":    "operator",
-							"version": k8sSignal.Agents.DatadogAgent.Version,
-						},
-					}
-					signal.Action = action
-
+			signal := dto.K8sSignal{}
+			signal.TypeSignal = "update_vendor"
+			signal.Vendor.Name = "datadog"
+			signal.Vendor.Mode = k8sSignal.Agents.DatadogAgent.Mode
+			signal.Vendor.Content = k8sSignal.Agents.DatadogAgent.DeployYml
+			signal.Vendor.Version = k8sSignal.Agents.DatadogAgent.Version
+			signal.Vendor.HostTags = k8sSignal.HostTags
+			datadogAgentMode := k8sSignal.Agents.DatadogAgent.Mode
+			if datadogAgentMode == "helm" {
+				action = dto.K8sAction{
+					Action:   "install",
+					Provider: "datadog",
+					Content:  k8sSignal.Agents.DatadogAgent.DeployYml,
+					Version:  k8sSignal.Agents.DatadogAgent.Version,
+					HostTags: k8sSignal.HostTags,
+					Envs: map[string]string{
+						"apiKey":  k8sSignal.Agents.DatadogAgent.ApiKey,
+						"mode":    "helm",
+						"version": k8sSignal.Agents.DatadogAgent.Version,
+					},
 				}
-				signals = append(signals, signal)
+				signal.Action = action
+			} else if datadogAgentMode == "operator" {
+				action = dto.K8sAction{
+					Action:   "install",
+					Provider: "datadog",
+					Content:  k8sSignal.Agents.DatadogAgent.DeployYml,
+					Version:  k8sSignal.Agents.DatadogAgent.Version,
+					HostTags: k8sSignal.HostTags,
+					Envs: map[string]string{
+						"apiKey":  k8sSignal.Agents.DatadogAgent.ApiKey,
+						"mode":    "operator",
+						"version": k8sSignal.Agents.DatadogAgent.Version,
+					},
+				}
+				signal.Action = action
+
 			}
+			signals = append(signals, signal)
 
 		}
 		if len(k8sSignal.Agents.OryaAgent.Version) > 0 {
