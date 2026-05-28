@@ -24,27 +24,108 @@ spec:
             - sh
             - -c
             - |
-              set -e
+              echo "=== Orya Agent Validation ==="
+              echo ""
               
-              echo "Starting validation process..."
+              ORYA_SITE="{{ .Values.orya.orya_site.url | default "https://msapi.orya.tech" }}"
+              API_KEY="{{ .Values.orya.data.ORYA_API_KEY }}"
               
-              oryaSite="{{ .Values.orya.orya_site.url | default "https://msapi.orya.tech" }}"
-              url="$oryaSite/usage-tracking/usage-limit/orya/check"
+              # -------------------------------------------------------
+              # Step 1: Validate Orya Site connectivity (DNS + network)
+              # -------------------------------------------------------
+              echo "[1/2] Checking access to Orya Site..."
+              echo "  URL: $ORYA_SITE"
               
-              resp=$(curl -s "$url" -H "docp-api-key: {{ .Values.orya.data.ORYA_API_KEY }}")
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 --max-time 15 "$ORYA_SITE" 2>&1)
+              CURL_EXIT=$?
               
-              has_limit=$(echo "$resp" | grep -o '"has_limit":[^,]*' | cut -d: -f2)
-              current_usage=$(echo "$resp" | grep -o '"current_usage":[^,]*' | cut -d: -f2)
-              limit=$(echo "$resp" | grep -o '"limit":[^,]*' | cut -d: -f2)
-                            
-              if [[ "$has_limit" == "" ]]; then
-                echo "Failed check usage limit"
+              if [ "$CURL_EXIT" -eq 6 ]; then
+                echo "  ERROR: Domain not found - $ORYA_SITE"
+                echo "  Check if the orya.orya_site.url value is correct."
                 exit 1
-              elif [[ "$has_limit" == "false" ]]; then
-                echo "Usage limit exceeded: Cannot install the agent."
-                echo "Current limit: $limit"
+              elif [ "$CURL_EXIT" -eq 7 ]; then
+                echo "  ERROR: Connection refused by $ORYA_SITE"
+                echo "  The server may be down or the address is incorrect."
+                exit 1
+              elif [ "$CURL_EXIT" -eq 28 ]; then
+                echo "  ERROR: Connection timeout for $ORYA_SITE"
+                echo "  Check your cluster's network connectivity and DNS resolution."
+                exit 1
+              elif [ "$CURL_EXIT" -ne 0 ]; then
+                echo "  ERROR: Failed to access $ORYA_SITE"
+                echo "  Check the address and your cluster's network connectivity."
                 exit 1
               fi
               
-              echo "Validation succeeded"
+              echo "  Orya Site reachable"
+              echo ""
+              
+              # -------------------------------------------------------
+              # Step 2: Validate usage limit + API Key
+              # -------------------------------------------------------
+              echo "[2/2] Checking usage limit..."
+              URL="$ORYA_SITE/usage-tracking/usage-limit/orya/check"
+              echo "  URL: $ORYA_SITE"
+              if [ -z "$API_KEY" ]; then
+                echo "  ERROR: API Key not configured."
+                echo "  Set the orya.data.ORYA_API_KEY value."
+                exit 1
+              fi
+              
+              TMPFILE=$(mktemp)
+              HTTP_CODE=$(curl -s -o "$TMPFILE" -w "%{http_code}" --connect-timeout 10 --max-time 30 "$URL" -H "docp-api-key: $API_KEY" 2>&1)
+              CURL_EXIT=$?
+              RESP_BODY=$(cat "$TMPFILE" 2>/dev/null || echo "")
+              rm -f "$TMPFILE"
+              
+              # Network error (fallback)
+              if [ "$CURL_EXIT" -ne 0 ] || [ "$HTTP_CODE" = "000" ]; then
+                echo "  ERROR: Could not connect to validation service."
+                echo "  curl exit code: $CURL_EXIT"
+                echo "  Check your cluster's network connectivity."
+                exit 1
+              fi
+              
+              # Backend error (scenario 4)
+              if [ "$HTTP_CODE" -ge 500 ]; then
+                echo "  ERROR: The Orya backend is temporarily unavailable."
+                echo "  Please wait a few moments and try again."
+                exit 1
+              fi
+              
+              # Invalid API Key (scenario 1) — API returns 404/401/403
+              if [ "$HTTP_CODE" = "404" ] || [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "403" ]; then
+                echo "  ERROR: Invalid API Key or wrong Orya Site."
+                echo "  Check the orya.data.ORYA_API_KEY value."
+                echo "  Check the orya.orya_site.url value."
+                exit 1
+              fi
+              
+              # Unexpected HTTP status
+              if [ "$HTTP_CODE" != "200" ]; then
+                echo "  Response: $RESP_BODY"
+                echo "  ERROR: Unexpected response (HTTP $HTTP_CODE)."
+                exit 1
+              fi
+                            
+              # Parse response fields
+              has_limit=$(echo "$RESP_BODY" | grep -o '"has_limit":[^,}]*' | cut -d: -f2)
+              current_usage=$(echo "$RESP_BODY" | grep -o '"current_usage":[^,}]*' | cut -d: -f2)
+              limit=$(echo "$RESP_BODY" | grep -o '"limit":[^,}]*' | cut -d: -f2)
+              
+              # Usage limit exceeded (scenario 2)
+              if [ "$has_limit" = "false" ]; then
+                echo "  ERROR: Usage limit exceeded."
+                echo "  You have reached the maximum number of agents for your plan."
+                if [ -n "$limit" ] && [ "$limit" != "0" ]; then
+                  echo "  Current limit: $limit"
+                fi
+                echo "  Increase your limits on the Orya platform."
+                exit 1
+              fi
+              
+              echo "  Usage limit OK."
+              [ -n "$limit" ] && echo "  Limit: $limit"
+              echo ""
+              echo "=== Validation completed successfully ==="
               exit 0
