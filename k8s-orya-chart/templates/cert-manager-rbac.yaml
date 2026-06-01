@@ -1,0 +1,26 @@
+# k8s-orya-chart/templates/cert-manager-rbac.yaml
+# Grants cluster-admin to the service account so the cert-manager-check hook job
+# can install cert-manager (which requires creating ClusterRoles with permissions
+# the SA doesn't normally have — Kubernetes RBAC escalation protection).
+{{- if and .Values.certificate.enabled .Values.serviceAccount.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "k8s-orya.fullname" . }}-cert-manager-installer
+  annotations:
+    # Runs after SA (weight -2), same time as ClusterRole/CRB (weight -1),
+    # but before cert-manager-check job (weight 0).
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-1"
+    "helm.sh/resource-policy": keep
+    meta.helm.sh/release-name: {{ .Release.Name }}
+    meta.helm.sh/release-namespace: {{ .Values.namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.serviceAccount.name }}
+    namespace: {{ .Values.namespace }}
+{{- end }}
