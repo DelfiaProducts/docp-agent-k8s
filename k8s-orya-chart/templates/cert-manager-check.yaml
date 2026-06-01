@@ -1,0 +1,131 @@
+# k8s-orya-chart/templates/cert-manager-check.yaml
+# Pre-install/pre-upgrade hook that ensures cert-manager is installed in the cluster.
+# The Orya Helm chart depends on cert-manager CRDs (Certificate, Issuer) for
+# webhook TLS. This job runs before the main chart resources are applied.
+{{- if .Values.certificate.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "k8s-orya.fullname" . }}-cert-manager-check
+  namespace: {{ .Values.namespace }}
+  annotations:
+    # Run after SA (weight -2) and RBAC (weight -1), before main resources.
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      restartPolicy: Never
+      containers:
+        - name: cert-manager-check
+          image: bitnami/kubectl:latest
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+
+              CERT_MANAGER_NS="cert-manager"
+              CERT_MANAGER_VERSION="{{ .Values.certManager.version }}"
+
+              # -------------------------------------------------------
+              # Step 0: Resolve cert-manager version (latest or pinned)
+              # -------------------------------------------------------
+              if [ -z "$CERT_MANAGER_VERSION" ] || [ "$CERT_MANAGER_VERSION" = "latest" ]; then
+                echo "[0/3] Fetching latest cert-manager version from GitHub API..."
+                GITHUB_RESP=$(curl -sS --connect-timeout 10 --max-time 15 \
+                  "https://api.github.com/repos/cert-manager/cert-manager/releases/latest" 2>&1 || echo "")
+
+                TAG=$(echo "$GITHUB_RESP" | grep '"tag_name":' | head -1 | cut -d '"' -f 4)
+
+                if [ -n "$TAG" ]; then
+                  CERT_MANAGER_VERSION="$TAG"
+                  echo "  Latest version: $CERT_MANAGER_VERSION"
+                else
+                  # Fallback version if GitHub API is unreachable or rate-limited
+                  CERT_MANAGER_VERSION="v1.20.2"
+                  echo "  GitHub API unavailable, using fallback version: $CERT_MANAGER_VERSION"
+                fi
+              else
+                echo "  Using pinned version: $CERT_MANAGER_VERSION"
+              fi
+
+              CERT_MANAGER_URL="https://github.com/cert-manager/cert-manager/releases/download/${CERT_MANAGER_VERSION}/cert-manager.yaml"
+
+              echo ""
+              echo "=============================================="
+              echo "  Orya Agent — Cert-manager Validation"
+              echo "=============================================="
+              echo ""
+
+              # -------------------------------------------------------
+              # Step 1: Check if cert-manager is already installed
+              # -------------------------------------------------------
+              echo "[1/3] Checking if cert-manager is already installed..."
+
+              if kubectl get namespace "$CERT_MANAGER_NS" &>/dev/null; then
+                READY=$(kubectl get deployment cert-manager \
+                  -n "$CERT_MANAGER_NS" \
+                  -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
+
+                if [ "$READY" -gt 0 ] 2>/dev/null; then
+                  echo "  cert-manager is already installed (ready replicas: $READY)"
+                  echo ""
+                  echo "=============================================="
+                  echo "  Validation completed successfully"
+                  echo "=============================================="
+                  exit 0
+                fi
+
+                echo "  cert-manager namespace exists but deployment not ready yet"
+                echo "  Reapplying manifest to ensure consistency..."
+              else
+                echo "  cert-manager not found in cluster"
+              fi
+
+              # -------------------------------------------------------
+              # Step 2: Install cert-manager
+              # -------------------------------------------------------
+              echo ""
+              echo "[2/3] Installing cert-manager ${CERT_MANAGER_VERSION}..."
+              echo "  URL: $CERT_MANAGER_URL"
+
+              kubectl apply -f "$CERT_MANAGER_URL"
+
+              echo "  Manifest applied successfully"
+              echo ""
+
+              # -------------------------------------------------------
+              # Step 3: Wait for deployments to be ready
+              # -------------------------------------------------------
+              echo "[3/3] Waiting for cert-manager deployments to be ready..."
+
+              for DEPLOY in cert-manager cert-manager-webhook cert-manager-cainjector; do
+                echo "  Waiting for deployment $DEPLOY..."
+                if kubectl rollout status deployment "$DEPLOY" \
+                  -n "$CERT_MANAGER_NS" \
+                  --timeout=180s &>/dev/null; then
+                  echo "  ✓ $DEPLOY is ready"
+                else
+                  echo "  ✗ $DEPLOY failed to become ready"
+                  echo "  ERROR: cert-manager deployment $DEPLOY did not become ready within timeout"
+                  exit 1
+                fi
+              done
+
+              echo ""
+              echo "=============================================="
+              echo "  Cert-manager ${CERT_MANAGER_VERSION} installed and ready"
+              echo "=============================================="
+              exit 0
+{{- end }}
