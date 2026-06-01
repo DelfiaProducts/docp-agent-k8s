@@ -156,3 +156,11 @@ certificate:
 issuer:
   enabled: true
   name: webhook-selfsigned-issuer
+
+# --- Configurações do cert-manager
+certManager:
+  # Versão do cert-manager a ser instalada automaticamente.
+  # Valores possíveis:
+  #   - "latest" ou "" (vazio):  busca a última release via GitHub API (com fallback v1.20.2)
+  #   - "v1.20.2", "v1.17.0", etc.: versão fixa
+  version: ""
