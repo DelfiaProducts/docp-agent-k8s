@@ -33,6 +33,7 @@ func (k *K8sManager) initializeConfigMaps() error {
 	dataConfigurations := map[string]string{
 		"datadog_installed":   "false",
 		"datadog_mode":        "",
+		"datadog_version":     "",
 		"datadog_namespace":   "",
 		"registered":          "false",
 		"auto_update_running": "false",
