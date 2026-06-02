@@ -10,6 +10,9 @@ import (
 	rbcav1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -82,6 +85,20 @@ func (m *ManagerOperator) DeleteConfigMap(configMapName string, namespace string
 	return nil
 }
 
+// ListConfigMaps execute get the all config maps in a namespace
+func (m *ManagerOperator) ListConfigMaps(namespace string) (*corev1.ConfigMapList, error) {
+	ctx := context.Background()
+	clientset, err := kubernetes.NewForConfig(m.kubeClient.Config)
+	if err != nil {
+		return nil, err
+	}
+	configMaps, err := clientset.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return configMaps, nil
+}
+
 // ListClusterRole execute get the all cluster role
 func (m *ManagerOperator) ListClusterRole() (*rbcav1.ClusterRoleList, error) {
 	ctx := context.Background()
@@ -140,6 +157,46 @@ func (m *ManagerOperator) DeleteClusterRoleBinding(clusterRoleBindingName string
 		if errors.IsNotFound(err) {
 			return err
 		}
+	}
+	return nil
+}
+
+// ListCustomResourceDefinitions execute get the all custom resource definitions
+func (m *ManagerOperator) ListCustomResourceDefinitions() (*unstructured.UnstructuredList, error) {
+	ctx := context.Background()
+	dynamicClient, err := dynamic.NewForConfig(m.kubeClient.Config)
+	if err != nil {
+		return nil, err
+	}
+	gvr := schema.GroupVersionResource{
+		Group:    "apiextensions.k8s.io",
+		Version:  "v1",
+		Resource: "customresourcedefinitions",
+	}
+	crds, err := dynamicClient.Resource(gvr).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return crds, nil
+}
+
+// DeleteCustomResourceDefinition execute remove the custom resource definition
+func (m *ManagerOperator) DeleteCustomResourceDefinition(name string) error {
+	ctx := context.Background()
+	dynamicClient, err := dynamic.NewForConfig(m.kubeClient.Config)
+	if err != nil {
+		return err
+	}
+	gvr := schema.GroupVersionResource{
+		Group:    "apiextensions.k8s.io",
+		Version:  "v1",
+		Resource: "customresourcedefinitions",
+	}
+	if err := dynamicClient.Resource(gvr).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
 	}
 	return nil
 }
@@ -255,27 +312,112 @@ func (m *ManagerOperator) UpdateDeploymentImage(namespace, deploymentName, conta
 }
 
 // CleanningDatadogLastInstalation execute cleanning the last instalation the datadog
+// Removes leftover resources from previous Datadog installations including:
+// - ClusterRoles, ClusterRoleBindings, ConfigMaps, and CRDs (datadoghq.com).
 func (m *ManagerOperator) CleanningDatadogLastInstalation() error {
 	prefix := "datadog"
+
+	m.logger.Info("cleaning up previous Datadog installation")
+
+	// 1. Clean up ClusterRoles and ClusterRoleBindings
+	if err := m.cleanupDatadogClusterRoles(prefix); err != nil {
+		m.logger.Error("cleanup datadog cluster roles", "error", err.Error())
+	}
+
+	if err := m.cleanupDatadogClusterRoleBindings(prefix); err != nil {
+		m.logger.Error("cleanup datadog cluster role bindings", "error", err.Error())
+	}
+
+	// 2. Clean up ConfigMaps with "datadog" prefix in all namespaces
+	if err := m.cleanupDatadogConfigMaps(prefix); err != nil {
+		m.logger.Error("cleanup datadog configmaps", "error", err.Error())
+	}
+
+	// 3. Clean up datadoghq.com CRDs
+	if err := m.cleanupDatadogCRDs(); err != nil {
+		m.logger.Error("cleanup datadog crds", "error", err.Error())
+	}
+
+	return nil
+}
+
+// cleanupDatadogClusterRoles removes all ClusterRoles with the given prefix
+func (m *ManagerOperator) cleanupDatadogClusterRoles(prefix string) error {
 	clusterRoles, err := m.ListClusterRole()
 	if err != nil {
 		return err
 	}
 	for _, cr := range clusterRoles.Items {
 		if strings.HasPrefix(cr.Name, prefix) {
+			m.logger.Debug("removing datadog cluster role", "name", cr.Name)
 			if err := m.DeleteClusterRole(cr.Name); err != nil {
-				return err
+				m.logger.Error("failed to delete cluster role", "name", cr.Name, "error", err.Error())
 			}
 		}
 	}
+	return nil
+}
+
+// cleanupDatadogClusterRoleBindings removes all ClusterRoleBindings with the given prefix
+func (m *ManagerOperator) cleanupDatadogClusterRoleBindings(prefix string) error {
 	clusterRoleBindings, err := m.ListClusterRoleBindig()
 	if err != nil {
 		return err
 	}
 	for _, crb := range clusterRoleBindings.Items {
 		if strings.HasPrefix(crb.Name, prefix) {
+			m.logger.Debug("removing datadog cluster role binding", "name", crb.Name)
 			if err := m.DeleteClusterRoleBinding(crb.Name); err != nil {
-				return err
+				m.logger.Error("failed to delete cluster role binding", "name", crb.Name, "error", err.Error())
+			}
+		}
+	}
+	return nil
+}
+
+// cleanupDatadogConfigMaps removes all ConfigMaps with the given prefix across all namespaces
+func (m *ManagerOperator) cleanupDatadogConfigMaps(prefix string) error {
+	namespaces, err := m.GetNamespaces()
+	if err != nil {
+		return err
+	}
+	for _, ns := range namespaces {
+		configMaps, err := m.ListConfigMaps(ns.Name)
+		if err != nil {
+			m.logger.Debug("skip listing configmaps for namespace", "namespace", ns.Name, "error", err.Error())
+			continue
+		}
+		for _, cm := range configMaps.Items {
+			if strings.HasPrefix(cm.Name, prefix) {
+				m.logger.Debug("removing datadog configmap", "name", cm.Name, "namespace", ns.Name)
+				if err := m.DeleteConfigMap(cm.Name, ns.Name); err != nil {
+					m.logger.Error("failed to delete configmap", "name", cm.Name, "namespace", ns.Name, "error", err.Error())
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// cleanupDatadogCRDs removes all CRDs from the datadoghq.com API group
+func (m *ManagerOperator) cleanupDatadogCRDs() error {
+	crds, err := m.ListCustomResourceDefinitions()
+	if err != nil {
+		return err
+	}
+	for _, crd := range crds.Items {
+		spec, ok := crd.Object["spec"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		group, ok := spec["group"].(string)
+		if !ok {
+			continue
+		}
+		if strings.HasSuffix(group, "datadoghq.com") {
+			m.logger.Debug("removing datadog CRD", "name", crd.GetName(), "group", group)
+			if err := m.DeleteCustomResourceDefinition(crd.GetName()); err != nil {
+				m.logger.Error("failed to delete CRD", "name", crd.GetName(), "group", group, "error", err.Error())
 			}
 		}
 	}
