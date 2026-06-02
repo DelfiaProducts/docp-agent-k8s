@@ -282,6 +282,13 @@ func (k *K8sManager) applyState() error {
 					if err := k.executeAction(signalState.Action); err != nil {
 						return err
 					}
+					// re-fetch configmap to avoid stale data: executeAction may have updated
+					// datadog_mode, datadog_version, etc.
+					configMapConfiguration, err = k.getConfigMap(k.configMapConfigurationsName, k.namespace)
+					if err != nil {
+						k.logger.Error("execute apply state re-fetch config map", "error", err.Error())
+						return err
+					}
 					newDatadogHash := utils.GenerateDatadogHash(signalState.Action.Content, signalState.Action.HostTags)
 					configMapConfiguration.Data["datadog_hash"] = newDatadogHash
 					if err := k.updateConfigMap(k.configMapConfigurationsName, k.namespace, configMapConfiguration.Data); err != nil {
