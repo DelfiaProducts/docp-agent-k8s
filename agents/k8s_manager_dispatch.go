@@ -59,6 +59,7 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 			}
 			go k.operator.NotifyStatus("install_datadog_update", pkg.TransactionEventUpdate, "install datadog update", ctx, &factory)
 			configMapConfiguration.Data["datadog_mode"] = "helm"
+			configMapConfiguration.Data["datadog_version"] = action.Version
 
 		} else if newMode == "operator" {
 			datadogDto := dto.DatadogDTO{
@@ -82,6 +83,7 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 
 			go k.operator.NotifyStatus("install_datadog_update", pkg.TransactionEventUpdate, "install datadog update", ctx, &factory)
 			configMapConfiguration.Data["datadog_mode"] = "operator"
+			configMapConfiguration.Data["datadog_version"] = action.Version
 		}
 		if err := k.updateConfigMap(k.configMapConfigurationsName, k.namespace, configMapConfiguration.Data); err != nil {
 			go k.operator.NotifyStatus("install_datadog_error", pkg.TransactionEventClose, fmt.Sprintf("install datadog error: %s", err.Error()), ctx, &factory)
@@ -110,6 +112,7 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 		}
 		configMapConfiguration.Data["datadog_mode"] = ""
 		configMapConfiguration.Data["datadog_hash"] = ""
+		configMapConfiguration.Data["datadog_version"] = ""
 		configMapConfiguration.Data["datadog_installed"] = "false"
 		if err := k.updateConfigMap(k.configMapConfigurationsName, k.namespace, configMapConfiguration.Data); err != nil {
 			return err
@@ -199,7 +202,7 @@ func (k *K8sManager) applyState() error {
 				if err != nil {
 					return err
 				}
-				//validate if mode datadog is being altered
+				//validate if mode or version datadog is being altered
 				if signalState.TypeSignal == "update_vendor" {
 					configMapConfiguration, err := k.getConfigMap(k.configMapConfigurationsName, k.namespace)
 					if err != nil {
@@ -213,13 +216,34 @@ func (k *K8sManager) applyState() error {
 						k.logger.Error("execute apply state invalid datadog mode", "mode", newMode)
 						return utils.ErrInvalidDatadogMode()
 					}
+
+					shouldUninstall := false
+					uninstallReason := ""
+
+					// Mode change: helm → operator or operator → helm
 					if datadogInstalled && len(actualMode) > 0 && newMode != actualMode {
-						k.logger.Info("execute apply state mode change", "actualMode", actualMode, "newMode", newMode)
+						shouldUninstall = true
+						uninstallReason = fmt.Sprintf("mode change: %s → %s", actualMode, newMode)
+					}
+
+					// Version change within the same mode
+					if !shouldUninstall && datadogInstalled && len(actualMode) > 0 && newMode == actualMode {
+						actualVersion := configMapConfiguration.Data["datadog_version"]
+						newVersion := signalState.Vendor.Version
+						if len(newVersion) > 0 && newVersion != actualVersion {
+							shouldUninstall = true
+							uninstallReason = fmt.Sprintf("version change: %s → %s (mode: %s)", actualVersion, newVersion, actualMode)
+						}
+					}
+
+					if shouldUninstall {
+						k.logger.Info("execute apply state uninstall datadog", "reason", uninstallReason)
 						if err := k.operator.UninstallDatadogCall(actualMode, dto.DatadogDTO{DatadogNamespace: datadogNamespace}); err != nil {
 							k.logger.Error("execute apply state uninstall datadog", "error", err.Error())
 							return err
 						}
 						configMapConfiguration.Data["datadog_hash"] = ""
+						configMapConfiguration.Data["datadog_version"] = ""
 						if err := k.updateConfigMap(k.configMapConfigurationsName, k.namespace, configMapConfiguration.Data); err != nil {
 							return err
 						}
