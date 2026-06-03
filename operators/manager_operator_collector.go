@@ -142,6 +142,14 @@ func (m *ManagerOperator) GetClusterRoleBinding(clusterRoleBindingName string) (
 // CollectMetadataK8s return metadata from k8s
 func (m *ManagerOperator) CollectMetadataK8s() (dto.K8sRegister, error) {
 	registerData := dto.K8sRegister{}
+
+	uniqID, err := m.GetOrCreateClusterID()
+	if err != nil {
+		m.logger.Warn("collect metadata: could not get/create cluster orya_id", "error", err.Error())
+	} else {
+		registerData.Metadata.ComputeInfo.OryaId = uniqID
+	}
+
 	clusterName, err := m.getClusterName()
 	if err != nil {
 		return dto.K8sRegister{}, err
