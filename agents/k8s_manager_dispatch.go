@@ -38,7 +38,7 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 	newMode := action.Envs["mode"]
 	switch action.Action {
 	case "install":
-		// inject orya-id tag to link Datadog to the cluster orya_id
+		// inject tag to link Datadog to the cluster orya_id
 		uniqID, err := k.operator.GetOrCreateClusterID()
 		if err == nil {
 			oryaTag := "orya_id:" + uniqID
