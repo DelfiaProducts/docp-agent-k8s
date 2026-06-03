@@ -151,6 +151,7 @@ type K8sRegisterMetadata struct {
 type K8sRegisterPlataform struct {
 	ComputeName  string `json:"compute_name"`
 	PlatformArch string `json:"platform_arch"`
+	OryaId       string `json:"orya_id"`
 }
 
 // K8sRegisterResponse is struct for response the register
