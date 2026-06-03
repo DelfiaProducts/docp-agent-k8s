@@ -38,6 +38,23 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 	newMode := action.Envs["mode"]
 	switch action.Action {
 	case "install":
+		// inject orya-id tag to link Datadog to the cluster orya_id
+		uniqID, err := k.operator.GetOrCreateClusterID()
+		if err == nil {
+			oryaTag := "orya_id:" + uniqID
+			found := false
+			for _, t := range action.HostTags {
+				if t == oryaTag {
+					found = true
+					break
+				}
+			}
+			if !found {
+				action.HostTags = append(action.HostTags, oryaTag)
+			}
+		} else {
+			k.logger.Warn("execute action: could not get orya_id for orya-id tag", "error", err.Error())
+		}
 		if newMode == "helm" {
 			datadogDto := dto.DatadogDTO{
 				Content:          action.Content,
