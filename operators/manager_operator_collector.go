@@ -5,9 +5,12 @@ import (
 	"context"
 	defaultErrors "errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/OryaHub/agent-k8s/dto"
 	pkg "github.com/OryaHub/agent-k8s/pkg"
@@ -150,7 +153,7 @@ func (m *ManagerOperator) CollectMetadataK8s() (dto.K8sRegister, error) {
 		registerData.Metadata.ComputeInfo.OryaId = uniqID
 	}
 
-	clusterName, err := m.getClusterName()
+	clusterName, err := m.GetClusterName()
 	if err != nil {
 		return dto.K8sRegister{}, err
 	}
@@ -249,49 +252,157 @@ func (m *ManagerOperator) getClusterArch() (string, error) {
 	return arch, nil
 }
 
-// getClusterName return cluster name
-func (m *ManagerOperator) getClusterName() (string, error) {
+// GetClusterName return cluster name using a cascade strategy:
+//  1. CLUSTER_NAME env var (admin override)
+//  2. Provider-specific detection (node labels, API hostname, cloud metadata)
+//  3. KUBERNETES_SERVICE_HOST (fallback)
+func (m *ManagerOperator) GetClusterName() (string, error) {
 	mode := os.Getenv("MODE")
 	if mode == "local" {
-		kubeconfig := os.Getenv("KUBECONFIG")
-		if kubeconfig == "" {
-			homeDir, err := os.UserHomeDir()
-			if err != nil {
-				return "", err
-			}
-			kubeconfig = filepath.Join(homeDir, ".kube", "config")
-		}
+		return m.getClusterNameFromKubeconfig()
+	}
 
-		config, err := clientcmd.LoadFromFile(kubeconfig)
+	if name := os.Getenv("CLUSTER_NAME"); len(name) > 0 {
+		return name, nil
+	}
+
+	name, err := m.detectClusterName()
+	if err == nil && len(name) > 0 {
+		return name, nil
+	}
+
+	if host := os.Getenv("KUBERNETES_SERVICE_HOST"); len(host) > 0 {
+		return host, nil
+	}
+
+	return "", defaultErrors.New("could not determine cluster name")
+}
+
+// getClusterNameFromKubeconfig reads cluster name from the kubeconfig context.
+func (m *ManagerOperator) getClusterNameFromKubeconfig() (string, error) {
+	kubeconfig := os.Getenv("KUBECONFIG")
+	if kubeconfig == "" {
+		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return "", err
 		}
-		currentContextName := config.CurrentContext
-
-		if currentContextName == "" {
-			return "", defaultErrors.New("no current context found in kubeconfig")
-		}
-
-		currentContext, ok := config.Contexts[currentContextName]
-		if !ok {
-			return "", defaultErrors.New("current context not found in kubeconfig")
-		}
-		clusterName := currentContext.Cluster
-		if clusterName == "" {
-			return "", defaultErrors.New("no cluster name associated with current context")
-		}
-		return clusterName, nil
-	} else {
-		var kubeClusterName string
-		clusterName := os.Getenv("CLUSTER_NAME")
-		kubernetesHost := os.Getenv("KUBERNETES_SERVICE_HOST")
-		if len(clusterName) > 0 {
-			kubeClusterName = clusterName
-		} else if len(kubernetesHost) > 0 {
-			kubeClusterName = kubernetesHost
-		}
-		return kubeClusterName, nil
+		kubeconfig = filepath.Join(homeDir, ".kube", "config")
 	}
+
+	config, err := clientcmd.LoadFromFile(kubeconfig)
+	if err != nil {
+		return "", err
+	}
+	currentContextName := config.CurrentContext
+
+	if currentContextName == "" {
+		return "", defaultErrors.New("no current context found in kubeconfig")
+	}
+
+	currentContext, ok := config.Contexts[currentContextName]
+	if !ok {
+		return "", defaultErrors.New("current context not found in kubeconfig")
+	}
+	clusterName := currentContext.Cluster
+	if clusterName == "" {
+		return "", defaultErrors.New("no cluster name associated with current context")
+	}
+	return clusterName, nil
+}
+
+// detectClusterName attempts to determine the cluster name from provider-specific
+// node labels, API server hostname patterns, or cloud metadata endpoints.
+func (m *ManagerOperator) detectClusterName() (string, error) {
+	ctx := context.Background()
+	clientset, err := kubernetes.NewForConfig(m.kubeClient.Config)
+	if err != nil {
+		return "", err
+	}
+
+	nodes, err := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{Limit: 1})
+	if err != nil {
+		return "", err
+	}
+	if len(nodes.Items) == 0 {
+		return "", defaultErrors.New("no nodes found")
+	}
+	node := nodes.Items[0]
+
+	for _, key := range []string{
+		"alpha.eksctl.io/cluster-name",
+		"kubernetes.azure.com/cluster",
+		"kind.x-k8s.io/cluster",
+	} {
+		if val, ok := node.Labels[key]; ok && len(val) > 0 {
+			return val, nil
+		}
+	}
+
+	host := os.Getenv("KUBERNETES_SERVICE_HOST")
+	if strings.Contains(host, "eks.amazonaws.com") {
+		parts := strings.SplitN(host, ".", 2)
+		if len(parts[0]) > 0 {
+			return parts[0], nil
+		}
+	}
+
+	if strings.HasPrefix(node.Spec.ProviderID, "gce://") {
+		return m.getClusterNameFromGCE()
+	}
+
+	// kubeadm: read from ConfigMap in kube-system
+	if name, err := m.getClusterNameFromKubeadm(ctx, clientset); err == nil && len(name) > 0 {
+		return name, nil
+	}
+
+	return "", defaultErrors.New("no provider-specific cluster name found")
+}
+
+// getClusterNameFromGCE calls the GCE metadata endpoint for the GKE cluster name.
+func (m *ManagerOperator) getClusterNameFromGCE() (string, error) {
+	client := &http.Client{Timeout: 2 * time.Second}
+	req, err := http.NewRequest("GET", "http://metadata.google.internal/computeMetadata/v1/instance/attributes/cluster-name", nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Metadata-Flavor", "Google")
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("GCE metadata returned status %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(body)), nil
+}
+
+// getClusterNameFromKubeadm reads the cluster name from the kubeadm-config
+// ConfigMap in the kube-system namespace.
+func (m *ManagerOperator) getClusterNameFromKubeadm(ctx context.Context, clientset *kubernetes.Clientset) (string, error) {
+	cm, err := clientset.CoreV1().ConfigMaps("kube-system").Get(ctx, "kubeadm-config", metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	raw, ok := cm.Data["ClusterConfiguration"]
+	if !ok || len(raw) == 0 {
+		return "", defaultErrors.New("kubeadm-config has no ClusterConfiguration key")
+	}
+	// Parse YAML line-by-line to find clusterName: <value>
+	for _, line := range strings.Split(raw, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "clusterName:") {
+			val := strings.TrimSpace(strings.TrimPrefix(trimmed, "clusterName:"))
+			if len(val) > 0 {
+				return val, nil
+			}
+		}
+	}
+	return "", defaultErrors.New("clusterName not found in kubeadm ClusterConfiguration")
 }
 
 func (m *ManagerOperator) getNodeNames() ([]string, error) {
