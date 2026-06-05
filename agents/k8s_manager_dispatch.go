@@ -55,6 +55,24 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 		} else {
 			k.logger.Warn("execute action: could not get orya_id for orya-id tag", "error", err.Error())
 		}
+
+		// inject kube_cluster_name tag to identify the cluster in Datadog
+		clusterName, err := k.operator.GetClusterName()
+		if err == nil && len(clusterName) > 0 {
+			clusterTag := "kube_cluster_name:" + clusterName
+			found := false
+			for _, t := range action.HostTags {
+				if t == clusterTag {
+					found = true
+					break
+				}
+			}
+			if !found {
+				action.HostTags = append(action.HostTags, clusterTag)
+			}
+		} else {
+			k.logger.Warn("execute action: could not get cluster name for kube_cluster_name tag", "error", err.Error())
+		}
 		if newMode == "helm" {
 			datadogDto := dto.DatadogDTO{
 				Content:          action.Content,
