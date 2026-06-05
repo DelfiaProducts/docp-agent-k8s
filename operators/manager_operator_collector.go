@@ -158,6 +158,7 @@ func (m *ManagerOperator) CollectMetadataK8s() (dto.K8sRegister, error) {
 		return dto.K8sRegister{}, err
 	}
 	registerData.ClusterName = clusterName
+	registerData.Metadata.ComputeInfo.ComputeName = clusterName
 	nodeNames, err := m.getNodeNames()
 	if err != nil {
 		return dto.K8sRegister{}, err
