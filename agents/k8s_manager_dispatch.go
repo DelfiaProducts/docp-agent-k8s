@@ -56,22 +56,12 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 			k.logger.Warn("execute action: could not get orya_id for orya-id tag", "error", err.Error())
 		}
 
-		// inject kube_cluster_name tag to identify the cluster in Datadog
-		clusterName, err := k.operator.GetClusterName()
-		if err == nil && len(clusterName) > 0 {
-			clusterTag := "kube_cluster_name:" + clusterName
-			found := false
-			for _, t := range action.HostTags {
-				if t == clusterTag {
-					found = true
-					break
-				}
-			}
-			if !found {
-				action.HostTags = append(action.HostTags, clusterTag)
-			}
+		// get cluster name to inject into Datadog config
+		clusterName := ""
+		if name, err := k.operator.GetClusterName(); err == nil && len(name) > 0 {
+			clusterName = name
 		} else {
-			k.logger.Warn("execute action: could not get cluster name for kube_cluster_name tag", "error", err.Error())
+			k.logger.Warn("execute action: could not get cluster name", "error", err.Error())
 		}
 		if newMode == "helm" {
 			datadogDto := dto.DatadogDTO{
@@ -80,6 +70,7 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 				Version:          action.Version,
 				ApiKey:           action.Envs["apiKey"],
 				HostTags:         action.HostTags,
+				ClusterName:      clusterName,
 			}
 			go k.operator.NotifyStatus("install_datadog_received", pkg.TransactionEventOpen, "install datadog received", ctx, &factory)
 			// execute cleaning last instalation datadog
@@ -103,6 +94,7 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 				Version:          action.Version,
 				ApiKey:           action.Envs["apiKey"],
 				HostTags:         action.HostTags,
+				ClusterName:      clusterName,
 			}
 			go k.operator.NotifyStatus("install_datadog_received", pkg.TransactionEventOpen, "install datadog received", ctx, &factory)
 			// execute cleaning last instalation datadog
