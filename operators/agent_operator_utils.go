@@ -36,6 +36,7 @@ func (a *AgentOperator) applyDatadogOperatorYml(datadogDto dto.DatadogDTO) error
 		return err
 	}
 	applyHostTagsOperator(&datadogAgent, datadogDto.HostTags)
+	applyClusterNameOperator(&datadogAgent, datadogDto.ClusterName)
 	a.logger.Debug("datadog agent after apply host tags", "datadogAgent", datadogAgent)
 	gvr := schema.GroupVersionResource{
 		Group:    "datadoghq.com",
@@ -151,6 +152,7 @@ func (a *AgentOperator) applyDatadogUpdateConfigOperator(datadogDto dto.DatadogD
 	a.logger.Debug("datadog agent before apply host tags", "datadogAgent", datadogAgent)
 
 	applyHostTagsOperator(&datadogAgent, datadogDto.HostTags)
+	applyClusterNameOperator(&datadogAgent, datadogDto.ClusterName)
 	a.logger.Debug("datadog agent after apply host tags", "datadogAgent", datadogAgent)
 
 	datadogAgent.SetResourceVersion(resource.GetResourceVersion())
@@ -221,6 +223,7 @@ func (a *AgentOperator) applyDatadogUpdateConfigHelm(datadogDto dto.DatadogDTO) 
 	}
 
 	applyHostTagsHelm(values, datadogDto.HostTags)
+	applyClusterNameHelm(values, datadogDto.ClusterName)
 
 	_, err = upgrade.Run("datadog-agent", chart, values)
 	if err != nil {
@@ -302,6 +305,7 @@ func (a *AgentOperator) installHelmChart(releaseName string, datadogDto dto.Data
 		return err
 	}
 	applyHostTagsHelm(values, datadogDto.HostTags)
+	applyClusterNameHelm(values, datadogDto.ClusterName)
 
 	_, err = install.Run(chart, values)
 	return err
@@ -409,6 +413,38 @@ func applyHostTagsOperator(obj *unstructured.Unstructured, hostTags []string) {
 		out[i] = t
 	}
 	_ = unstructured.SetNestedSlice(obj.Object, out, "spec", "global", "tags")
+}
+
+// applyClusterNameHelm injects clusterName into the helm values under datadog.clusterName
+// if not already set, preserving any existing value from the deploy-yml.
+func applyClusterNameHelm(values map[string]interface{}, clusterName string) {
+	if len(clusterName) == 0 {
+		return
+	}
+	datadogRaw, ok := values["datadog"]
+	if !ok {
+		datadogRaw = map[string]interface{}{}
+	}
+	datadogMap, ok := datadogRaw.(map[string]interface{})
+	if !ok {
+		datadogMap = map[string]interface{}{}
+	}
+	if _, exists := datadogMap["clusterName"]; !exists {
+		datadogMap["clusterName"] = clusterName
+		values["datadog"] = datadogMap
+	}
+}
+
+// applyClusterNameOperator injects clusterName into a DatadogAgent unstructured
+// object at spec.global.clusterName if not already set, preserving any existing value.
+func applyClusterNameOperator(obj *unstructured.Unstructured, clusterName string) {
+	if len(clusterName) == 0 {
+		return
+	}
+	existing, _, _ := unstructured.NestedString(obj.Object, "spec", "global", "clusterName")
+	if existing == "" {
+		_ = unstructured.SetNestedField(obj.Object, clusterName, "spec", "global", "clusterName")
+	}
 }
 
 func (a *AgentOperator) installHelmChartOperatorDatadog(releaseName string, datadogDto dto.DatadogDTO) error {
