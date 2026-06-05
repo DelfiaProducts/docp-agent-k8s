@@ -47,6 +47,7 @@ type DatadogDTO struct {
 	AppKey           string   `json:"app_key"`
 	Version          string   `json:"version"`
 	HostTags         []string `json:"host_tags"`
+	ClusterName      string   `json:"cluster_name"`
 }
 
 // K8sAction is struct for actions
