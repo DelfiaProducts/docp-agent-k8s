@@ -11,12 +11,21 @@ RUN apk update && apk add --no-cache ca-certificates
 # Define o diretório de trabalho
 WORKDIR /app
 
-# Copia o código-fonte
-COPY . .
 COPY go.mod .
 COPY go.sum .
-# Compila para um binário estático
-RUN CGO_ENABLED=0 GOOS=linux go build -o orya-agent ./agent/main.go
+
+# Baixa os módulos usando cache do Buildx para evitar re-download
+RUN --mount=type=cache,target=/go/pkg/mod \
+go mod download
+
+# Copia o código-fonte
+COPY . .
+
+# Compila o binário usando cache para o compilador e para os módulos
+# O CGO_ENABLED=0 garante um binário estático que roda em qualquer lugar
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o orya-agent ./agent/main.go
 
 # Estágio final - imagem mínima para execução
 FROM alpine:3.18
