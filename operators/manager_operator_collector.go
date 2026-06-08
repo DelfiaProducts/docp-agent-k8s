@@ -19,6 +19,8 @@ import (
 	rbcav1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	unstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
@@ -253,10 +255,75 @@ func (m *ManagerOperator) getClusterArch() (string, error) {
 	return arch, nil
 }
 
+// extractClusterNameFromYamlContent parses a Datadog deploy-yml and returns
+// clusterName if explicitly set. Tries both helm values format and operator
+// CRD format, returning the first match found.
+func extractClusterNameFromYamlContent(content string) string {
+	if len(content) == 0 {
+		return ""
+	}
+	// Try helm format: datadog.clusterName
+	var values map[string]interface{}
+	if err := yaml.Unmarshal([]byte(content), &values); err == nil {
+		if datadogRaw, ok := values["datadog"]; ok {
+			if datadogMap, ok := datadogRaw.(map[string]interface{}); ok {
+				if name, ok := datadogMap["clusterName"]; ok {
+					if s, ok := name.(string); ok && len(s) > 0 {
+						return s
+					}
+				}
+			}
+		}
+	}
+	// Try operator CRD format: spec.global.clusterName
+	decoder := yaml.NewYAMLOrJSONDecoder(strings.NewReader(content), 4096)
+	var obj unstructured.Unstructured
+	if err := decoder.Decode(&obj); err == nil {
+		if name, _, _ := unstructured.NestedString(obj.Object, "spec", "global", "clusterName"); len(name) > 0 {
+			return name
+		}
+	}
+	return ""
+}
+
+// GetEffectiveClusterName returns the cluster name to use for Datadog config.
+// If the deploy-yml already has a clusterName set, it returns that value
+// (the deploy-yml is authoritative). Otherwise, it falls back to the cascade
+// detection strategy via GetClusterName().
+func (m *ManagerOperator) GetEffectiveClusterName(content string) (string, error) {
+	if name := extractClusterNameFromYamlContent(content); len(name) > 0 {
+		return name, nil
+	}
+	return m.GetClusterName()
+}
+
+// getDatadogClusterName attempts to read the cluster name from an installed
+// Datadog agent's "agent status" output. Returns empty string if Datadog is
+// not installed or the name cannot be determined.
+func (m *ManagerOperator) getDatadogClusterName() (string, error) {
+	nsList, err := m.GetNamespaces()
+	if err != nil {
+		return "", err
+	}
+	vendor, err := m.DatadogAlreadyInstalled("datadog", nsList)
+	if err != nil {
+		return "", err
+	}
+	if !vendor.Installed {
+		return "", nil
+	}
+	info, err := m.geDatadogInfos(vendor.Namespace)
+	if err != nil {
+		return "", err
+	}
+	return info.Datadog.ClusterName, nil
+}
+
 // GetClusterName return cluster name using a cascade strategy:
 //  1. CLUSTER_NAME env var (admin override)
-//  2. Provider-specific detection (node labels, API hostname, cloud metadata)
-//  3. KUBERNETES_SERVICE_HOST (fallback)
+//  2. Datadog agent cluster name (if installed — ensures consistency)
+//  3. Provider-specific detection (node labels, API hostname, cloud metadata)
+//  4. KUBERNETES_SERVICE_HOST (fallback)
 func (m *ManagerOperator) GetClusterName() (string, error) {
 	mode := os.Getenv("MODE")
 	if mode == "local" {
@@ -267,7 +334,14 @@ func (m *ManagerOperator) GetClusterName() (string, error) {
 		return name, nil
 	}
 
-	name, err := m.detectClusterName()
+	// If Datadog is already installed, prefer its cluster name for consistency.
+	// The Orya agent itself injects this name during install, so it's authoritative.
+	name, err := m.getDatadogClusterName()
+	if err == nil && len(name) > 0 {
+		return name, nil
+	}
+
+	name, err = m.detectClusterName()
 	if err == nil && len(name) > 0 {
 		return name, nil
 	}
