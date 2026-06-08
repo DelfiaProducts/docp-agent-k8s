@@ -61,6 +61,9 @@ func (k *K8sManager) Initialize() error {
 		k.logger.Error("initialize config maps", "error", err.Error())
 		return err
 	}
+	if err := k.detectClusterChanges(); err != nil {
+		k.logger.Error("initialize detect cluster changes", "error", err.Error())
+	}
 	if err := k.handlerRegister(); err != nil {
 		k.logger.Error("initialize handler register", "error", err.Error())
 	}

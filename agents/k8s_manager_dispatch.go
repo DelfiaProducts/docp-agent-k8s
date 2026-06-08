@@ -56,12 +56,14 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 			k.logger.Warn("execute action: could not get orya_id for orya-id tag", "error", err.Error())
 		}
 
-		// get cluster name to inject into Datadog config
+		// determine the effective cluster name:
+		// 1. from deploy-yml if clusterName is already set (authoritative)
+		// 2. fallback to cascade detection (GetClusterName)
 		clusterName := ""
-		if name, err := k.operator.GetClusterName(); err == nil && len(name) > 0 {
+		if name, err := k.operator.GetEffectiveClusterName(action.Content); err == nil && len(name) > 0 {
 			clusterName = name
 		} else {
-			k.logger.Warn("execute action: could not get cluster name", "error", err.Error())
+			k.logger.Warn("execute action: could not determine cluster name", "error", err.Error())
 		}
 		if newMode == "helm" {
 			datadogDto := dto.DatadogDTO{
@@ -112,11 +114,15 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 			configMapConfiguration.Data["datadog_mode"] = "operator"
 			configMapConfiguration.Data["datadog_version"] = action.Version
 		}
+		if len(clusterName) > 0 {
+			configMapConfiguration.Data["cluster_name"] = clusterName
+		}
 		if err := k.updateConfigMap(k.configMapConfigurationsName, k.namespace, configMapConfiguration.Data); err != nil {
 			go k.operator.NotifyStatus("install_datadog_error", pkg.TransactionEventClose, fmt.Sprintf("install datadog error: %s", err.Error()), ctx, &factory)
 			return err
 		}
 		go k.operator.NotifyStatus("install_datadog_completed", pkg.TransactionEventClose, "install datadog update", ctx, &factory)
+
 	case "uninstall":
 		if action.Envs["mode"] == "helm" {
 			datadogDto := dto.DatadogDTO{
