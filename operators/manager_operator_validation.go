@@ -45,14 +45,14 @@ func (m *ManagerOperator) DatadogAlreadyInstalled(resourceName string, namespace
 			if containerName == "" {
 				continue
 			}
-			mainRunning := false
+			mainReady := false
 			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Name == containerName && cs.State.Running != nil {
-					mainRunning = true
+				if cs.Name == containerName && cs.State.Running != nil && cs.Ready {
+					mainReady = true
 					break
 				}
 			}
-			if !mainRunning {
+			if !mainReady {
 				continue
 			}
 			vendor.Installed = true
