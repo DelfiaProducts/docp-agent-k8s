@@ -442,6 +442,14 @@ func (m *ManagerOperator) geDatadogInfos(namespace string) (dto.VendorInfo, erro
 			break
 		}
 	}
+	// read the Datadog cluster UUID from ConfigMap datadog-cluster-id
+	clusterID := ""
+	if cm, err := clientset.CoreV1().ConfigMaps(namespace).Get(ctx, "datadog-cluster-id", metav1.GetOptions{}); err == nil {
+		if id, ok := cm.Data["id"]; ok && len(id) > 0 {
+			clusterID = id
+		}
+	}
+
 	if podFound.ObjectMeta.Name != "" {
 		out, err := m.execInPod(namespace, podFound.ObjectMeta.Name, "agent", []string{"agent", "status"})
 		if err != nil {
@@ -449,6 +457,7 @@ func (m *ManagerOperator) geDatadogInfos(namespace string) (dto.VendorInfo, erro
 		}
 		output := utils.RemoveLinesByPrefix([]string{"ERROR", "Error"}, out)
 		datadogInfos := dto.DatadogInfos{
+			ClusterID:                     clusterID,
 			ClusterName:                   utils.ParseValueByPrefix(output, "cluster-name:"),
 			HostId:                        utils.ParseValueByPrefix(output, "hostId:"),
 			Hostname:                      utils.ParseValueByPrefix(output, "hostname:"),
