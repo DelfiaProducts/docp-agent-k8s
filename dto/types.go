@@ -231,6 +231,7 @@ type VendorInfo struct {
 
 // DatadogInfos is struct for datadog infos
 type DatadogInfos struct {
+	ClusterID                     string `json:"cluster_id"`
 	ClusterName                   string `json:"cluster_name"`
 	HostId                        string `json:"host_id"`
 	Hostname                      string `json:"hostname"`
