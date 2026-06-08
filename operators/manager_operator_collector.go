@@ -497,6 +497,30 @@ func (m *ManagerOperator) getNodeNames() ([]string, error) {
 	return nodesNames, nil
 }
 
+// getAgentContainerName returns the name of the main Datadog agent container
+// in the pod, excluding known sidecar containers (trace-agent, process-agent,
+// system-probe, security-agent, etc.). Falls back to the first container if
+// no clear main agent is identified.
+func getAgentContainerName(pod corev1.Pod) string {
+	sidecars := map[string]bool{
+		"trace-agent":    true,
+		"process-agent":  true,
+		"system-probe":   true,
+		"security-agent": true,
+		"secconfig":      true,
+		"jmx":            true,
+	}
+	for _, c := range pod.Spec.Containers {
+		if !sidecars[c.Name] {
+			return c.Name
+		}
+	}
+	if len(pod.Spec.Containers) > 0 {
+		return pod.Spec.Containers[0].Name
+	}
+	return ""
+}
+
 // geDatadogInfos return datadog infos
 func (m *ManagerOperator) geDatadogInfos(namespace string) (dto.VendorInfo, error) {
 	var vendorInfos dto.VendorInfo
@@ -525,7 +549,11 @@ func (m *ManagerOperator) geDatadogInfos(namespace string) (dto.VendorInfo, erro
 	}
 
 	if podFound.ObjectMeta.Name != "" {
-		out, err := m.execInPod(namespace, podFound.ObjectMeta.Name, "agent", []string{"agent", "status"})
+		containerName := getAgentContainerName(podFound)
+		if containerName == "" {
+			return dto.VendorInfo{}, defaultErrors.New("no container found in datadog-agent pod")
+		}
+		out, err := m.execInPod(namespace, podFound.ObjectMeta.Name, containerName, []string{"agent", "status"})
 		if err != nil {
 			return dto.VendorInfo{}, err
 		}
