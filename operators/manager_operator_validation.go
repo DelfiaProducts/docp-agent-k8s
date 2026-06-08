@@ -34,23 +34,40 @@ func (m *ManagerOperator) DatadogAlreadyInstalled(resourceName string, namespace
 		if err != nil {
 			continue
 		}
-		prefix := "datadog"
 		for _, pod := range pods.Items {
-			if strings.HasPrefix(pod.Name, prefix) {
-				vendor.Installed = true
-				vendor.Namespace = namespace.Name
-
-				labels := pod.GetLabels()
-
-				mode := "unknown"
-				if managedBy, ok := labels["app.kubernetes.io/managed-by"]; ok && managedBy == "datadog-operator" {
-					mode = "operator"
-				} else if managedBy, ok := labels["app.kubernetes.io/managed-by"]; ok && managedBy == "Helm" {
-					mode = "helm"
-				}
-				vendor.Mode = mode
-				return vendor, nil
+			if !strings.HasPrefix(pod.Name, "datadog-agent") ||
+				pod.Status.Phase != corev1.PodRunning ||
+				pod.ObjectMeta.DeletionTimestamp != nil {
+				continue
 			}
+			// verifica se o container principal do Datadog está Running
+			containerName := getAgentContainerName(pod)
+			if containerName == "" {
+				continue
+			}
+			mainRunning := false
+			for _, cs := range pod.Status.ContainerStatuses {
+				if cs.Name == containerName && cs.State.Running != nil {
+					mainRunning = true
+					break
+				}
+			}
+			if !mainRunning {
+				continue
+			}
+			vendor.Installed = true
+			vendor.Namespace = namespace.Name
+
+			labels := pod.GetLabels()
+
+			mode := "unknown"
+			if managedBy, ok := labels["app.kubernetes.io/managed-by"]; ok && managedBy == "datadog-operator" {
+				mode = "operator"
+			} else if managedBy, ok := labels["app.kubernetes.io/managed-by"]; ok && managedBy == "Helm" {
+				mode = "helm"
+			}
+			vendor.Mode = mode
+			return vendor, nil
 		}
 
 	}
