@@ -60,9 +60,7 @@ jobs:
       - name: Login | Build | Push  - ECR Public K8S Agent
         run: |
           aws ecr-public get-login-password --region ${{ env.SERVICES_AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.PUBLIC_ECR_REPOSITORY }}
-          docker build -t ${{ env.REPO_K8S_AGENT }}:${{ github.ref_name }} -f ${{ env.DOCKERFILE_AGENT }} .
-          docker tag ${{ env.REPO_K8S_AGENT }}:${{ github.ref_name }} ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_AGENT }}:${{ github.ref_name }}
-          docker push ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_AGENT }}:${{ github.ref_name }}
+          docker buildx build -t ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_AGENT }}:${{ github.ref_name }}  --platform linux/arm64,linux/amd64 --push -f ${{ env.DOCKERFILE_AGENT }} .
           
           # Capturar URI completa da imagem do agent
           AGENT_IMAGE_URI="${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_AGENT }}"
@@ -72,9 +70,7 @@ jobs:
       - name: Login | Build | Push  - ECR Public K8S Manager
         run: |
           aws ecr-public get-login-password --region ${{ env.SERVICES_AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.PUBLIC_ECR_REPOSITORY }}
-          docker build -t ${{ env.REPO_K8S_MANAGER }}:${{ github.ref_name }} -f ${{ env.DOCKERFILE_MANAGER }} .
-          docker tag ${{ env.REPO_K8S_MANAGER }}:${{ github.ref_name }} ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_MANAGER }}:${{ github.ref_name }}
-          docker push ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_MANAGER }}:${{ github.ref_name }}
+          docker buildx build -t ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_MANAGER }}:${{ github.ref_name }}  --platform linux/arm64,linux/amd64 --push -f ${{ env.DOCKERFILE_MANAGER }} .
           
           # Capturar URI completa da imagem do manager
           MANAGER_IMAGE_URI="${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_MANAGER }}"
@@ -84,9 +80,7 @@ jobs:
       - name: Login | Build | Push  - ECR Public K8S Updater
         run: |
           aws ecr-public get-login-password --region ${{ env.SERVICES_AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.PUBLIC_ECR_REPOSITORY }}
-          docker build -t ${{ env.REPO_K8S_UPDATER }}:${{ github.ref_name }} -f ${{ env.DOCKERFILE_UPDATER }} .
-          docker tag ${{ env.REPO_K8S_UPDATER }}:${{ github.ref_name }} ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_UPDATER }}:${{ github.ref_name }}
-          docker push ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_UPDATER }}:${{ github.ref_name }}
+          docker buildx build -t ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_UPDATER }}:${{ github.ref_name }}  --platform linux/arm64,linux/amd64 --push -f ${{ env.DOCKERFILE_UPDATER }} .
           
           # Capturar URI completa da imagem do updater
           UPDATER_IMAGE_URI="${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_UPDATER }}"
@@ -96,9 +90,7 @@ jobs:
       - name: Login | Build | Push  - ECR Public K8S Webhook
         run: |
           aws ecr-public get-login-password --region ${{ env.SERVICES_AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.PUBLIC_ECR_REPOSITORY }}
-          docker build -t ${{ env.REPO_K8S_WEBHOOK }}:${{ github.ref_name }} -f ${{ env.DOCKERFILE_WEBHOOK }} .
-          docker tag ${{ env.REPO_K8S_WEBHOOK }}:${{ github.ref_name }} ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_WEBHOOK }}:${{ github.ref_name }}
-          docker push ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_WEBHOOK }}:${{ github.ref_name }}
+          docker buildx build -t ${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_WEBHOOK }}:${{ github.ref_name }}  --platform linux/arm64,linux/amd64 --push -f ${{ env.DOCKERFILE_WEBHOOK }} .
           
           # Capturar URI completa da imagem do webhook
           WEBHOOK_IMAGE_URI="${{ env.PUBLIC_ECR_REPOSITORY }}/${{ env.REPO_K8S_WEBHOOK }}"

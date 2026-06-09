@@ -38,6 +38,33 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 	newMode := action.Envs["mode"]
 	switch action.Action {
 	case "install":
+		// inject tag to link Datadog to the cluster orya_id
+		uniqID, err := k.operator.GetOrCreateClusterID()
+		if err == nil {
+			oryaTag := "orya_id:" + uniqID
+			found := false
+			for _, t := range action.HostTags {
+				if t == oryaTag {
+					found = true
+					break
+				}
+			}
+			if !found {
+				action.HostTags = append(action.HostTags, oryaTag)
+			}
+		} else {
+			k.logger.Warn("execute action: could not get orya_id for orya-id tag", "error", err.Error())
+		}
+
+		// determine the effective cluster name:
+		// 1. from deploy-yml if clusterName is already set (authoritative)
+		// 2. fallback to cascade detection (GetClusterName)
+		clusterName := ""
+		if name, err := k.operator.GetEffectiveClusterName(action.Content); err == nil && len(name) > 0 {
+			clusterName = name
+		} else {
+			k.logger.Warn("execute action: could not determine cluster name", "error", err.Error())
+		}
 		if newMode == "helm" {
 			datadogDto := dto.DatadogDTO{
 				Content:          action.Content,
@@ -45,6 +72,7 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 				Version:          action.Version,
 				ApiKey:           action.Envs["apiKey"],
 				HostTags:         action.HostTags,
+				ClusterName:      clusterName,
 			}
 			go k.operator.NotifyStatus("install_datadog_received", pkg.TransactionEventOpen, "install datadog received", ctx, &factory)
 			// execute cleaning last instalation datadog
@@ -68,6 +96,7 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 				Version:          action.Version,
 				ApiKey:           action.Envs["apiKey"],
 				HostTags:         action.HostTags,
+				ClusterName:      clusterName,
 			}
 			go k.operator.NotifyStatus("install_datadog_received", pkg.TransactionEventOpen, "install datadog received", ctx, &factory)
 			// execute cleaning last instalation datadog
@@ -85,11 +114,19 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 			configMapConfiguration.Data["datadog_mode"] = "operator"
 			configMapConfiguration.Data["datadog_version"] = action.Version
 		}
+		if len(clusterName) > 0 {
+			configMapConfiguration.Data["cluster_name"] = clusterName
+		}
 		if err := k.updateConfigMap(k.configMapConfigurationsName, k.namespace, configMapConfiguration.Data); err != nil {
 			go k.operator.NotifyStatus("install_datadog_error", pkg.TransactionEventClose, fmt.Sprintf("install datadog error: %s", err.Error()), ctx, &factory)
 			return err
 		}
 		go k.operator.NotifyStatus("install_datadog_completed", pkg.TransactionEventClose, "install datadog update", ctx, &factory)
+		// após instalar o Datadog, aguarda os pods ficarem prontos em background
+		// e então coleta metadados frescos (agora com vendor info) e envia ao register
+		k.wg.Add(1)
+		k.waitAndRegisterAfterInstall()
+
 	case "uninstall":
 		if action.Envs["mode"] == "helm" {
 			datadogDto := dto.DatadogDTO{
@@ -120,6 +157,45 @@ func (k *K8sManager) executeAction(action dto.K8sAction) error {
 		go k.operator.NotifyStatus("uninstall_datadog_completed", pkg.TransactionEventClose, "uninstall datadog update", ctx, &factory)
 	}
 	return nil
+}
+
+// waitAndRegisterAfterInstall aguarda em background o Datadog ficar totalmente
+// instalado e pronto (pods em execução) e então coleta metadados frescos e os
+// envia ao register. Best-effort: se atingir o timeout, o próximo ciclo
+// periodicSendMetadata (12h) ou restart fará o envio.
+func (k *K8sManager) waitAndRegisterAfterInstall() {
+	go func() {
+		defer k.wg.Done()
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+		timeout := time.After(5 * time.Minute)
+
+		for {
+			select {
+			case <-ticker.C:
+				namespaces, err := k.operator.GetNamespaces()
+				if err != nil {
+					k.logger.Debug("wait and register: list namespaces error", "error", err.Error())
+					continue
+				}
+				vendor, err := k.operator.DatadogAlreadyInstalled("datadog", namespaces)
+				if err != nil {
+					k.logger.Debug("wait and register: check datadog error", "error", err.Error())
+					continue
+				}
+				if vendor.Installed {
+					k.logger.Debug("wait and register: datadog ready, sending metadata to register")
+					if err := k.handlerRegister(); err != nil {
+						k.logger.Error("wait and register: post-install register failed", "error", err.Error())
+					}
+					return
+				}
+			case <-timeout:
+				k.logger.Debug("wait and register: timeout waiting for datadog to be ready (5m)")
+				return
+			}
+		}
+	}()
 }
 
 // executeAuthCall execute call for auth service

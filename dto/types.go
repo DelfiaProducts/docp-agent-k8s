@@ -47,6 +47,7 @@ type DatadogDTO struct {
 	AppKey           string   `json:"app_key"`
 	Version          string   `json:"version"`
 	HostTags         []string `json:"host_tags"`
+	ClusterName      string   `json:"cluster_name"`
 }
 
 // K8sAction is struct for actions
@@ -151,6 +152,7 @@ type K8sRegisterMetadata struct {
 type K8sRegisterPlataform struct {
 	ComputeName  string `json:"compute_name"`
 	PlatformArch string `json:"platform_arch"`
+	OryaId       string `json:"orya_id"`
 }
 
 // K8sRegisterResponse is struct for response the register
@@ -229,6 +231,7 @@ type VendorInfo struct {
 
 // DatadogInfos is struct for datadog infos
 type DatadogInfos struct {
+	ClusterID                     string `json:"cluster_id"`
 	ClusterName                   string `json:"cluster_name"`
 	HostId                        string `json:"host_id"`
 	Hostname                      string `json:"hostname"`

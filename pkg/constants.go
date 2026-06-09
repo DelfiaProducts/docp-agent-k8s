@@ -21,6 +21,7 @@ const (
 	ORYA_HELM_REPOSITORY                       = "https://docp-agent.s3.us-east-1.amazonaws.com"
 	ORYA_HELM_REPOSITORY_NAME                  = "orya"
 	ORYA_HELM_CHART_NAME                       = "k8s-orya"
+	ORYA_CLUSTER_ID_CONFIG_MAP_NAME            = "orya-cluster-id"
 	DATADOG_HELM_REPOSITORY                    = "https://helm.datadoghq.com"
 	DATADOG_DEPLOYMENT_OPERATOR_NAME           = "datadog-operator"
 	DATADOG_DEPLOYMENT_CLUSTER_AGENT_NAME      = "datadog-cluster-agent"

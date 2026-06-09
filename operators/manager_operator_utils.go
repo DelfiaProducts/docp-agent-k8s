@@ -4,7 +4,9 @@ import (
 	"context"
 	"strings"
 
+	"github.com/OryaHub/agent-k8s/pkg"
 	"github.com/OryaHub/agent-k8s/templates"
+	"github.com/OryaHub/agent-k8s/utils"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbcav1 "k8s.io/api/rbac/v1"
@@ -83,6 +85,57 @@ func (m *ManagerOperator) DeleteConfigMap(configMapName string, namespace string
 	}
 
 	return nil
+}
+
+// GetOrCreateClusterID returns the cluster unique ID from a ConfigMap
+// in the default namespace, creating it with a new ULID if it doesn't exist.
+// This ensures the same ID survives agent reinstallations.
+func (m *ManagerOperator) GetOrCreateClusterID() (string, error) {
+	cmName := pkg.ORYA_CLUSTER_ID_CONFIG_MAP_NAME
+	ns := "default"
+
+	// Try to get existing ConfigMap
+	cm, err := m.GetConfigMap(cmName, ns)
+	if err == nil {
+		if id, ok := cm.Data["orya_id"]; ok && id != "" {
+			return id, nil
+		}
+	}
+
+	// Not found — create new one
+	ctx := context.Background()
+	clientset, err := kubernetes.NewForConfig(m.kubeClient.Config)
+	if err != nil {
+		return "", err
+	}
+
+	newID := strings.ToLower(utils.GetUlid())
+	newCM := corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: cmName,
+		},
+		Data: map[string]string{
+			"orya_id": newID,
+		},
+	}
+
+	_, err = clientset.CoreV1().ConfigMaps(ns).Create(ctx, &newCM, metav1.CreateOptions{})
+	if err != nil {
+		if errors.IsAlreadyExists(err) {
+			// Race: another agent created it between our Get and Create
+			cm, errGet := clientset.CoreV1().ConfigMaps(ns).Get(ctx, cmName, metav1.GetOptions{})
+			if errGet != nil {
+				return "", errGet
+			}
+			if id, ok := cm.Data["orya_id"]; ok && id != "" {
+				return id, nil
+			}
+			return "", err
+		}
+		return "", err
+	}
+
+	return newID, nil
 }
 
 // ListConfigMaps execute get the all config maps in a namespace

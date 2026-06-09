@@ -3,6 +3,7 @@ package agents
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -19,6 +20,32 @@ func (k *K8sManager) retryHandlerRegister() error {
 	time.Sleep(time.Minute * time.Duration(k.retryRegister))
 	if err := k.handlerRegister(); err != nil {
 		return err
+	}
+	return nil
+}
+
+// detectClusterChanges compares the stored cluster_name with the current cluster
+// name from the cascade strategy. If different, it triggers handlerRegister to
+// collect fresh metadata and send it to the backend.
+func (k *K8sManager) detectClusterChanges() error {
+	configMapConfiguration, err := k.getConfigMap(k.configMapConfigurationsName, k.namespace)
+	if err != nil {
+		return fmt.Errorf("detect cluster changes: could not get config map: %w", err)
+	}
+	storedClusterName := configMapConfiguration.Data["cluster_name"]
+
+	currentClusterName, err := k.operator.GetClusterName()
+	if err != nil {
+		return fmt.Errorf("detect cluster changes: could not get current cluster name: %w", err)
+	}
+	if len(currentClusterName) == 0 {
+		return nil
+	}
+
+	if storedClusterName != currentClusterName {
+		if err := k.handlerRegister(); err != nil {
+			return fmt.Errorf("detect cluster changes: re-registration failed: %w", err)
+		}
 	}
 	return nil
 }
@@ -77,6 +104,9 @@ func (k *K8sManager) handlerRegister() error {
 					configMapConfiguration.Data["compute_id"] = claims.ComputeId
 				}
 				configMapConfiguration.Data["registered"] = "true"
+				if len(metadata.ClusterName) > 0 {
+					configMapConfiguration.Data["cluster_name"] = metadata.ClusterName
+				}
 				if err := k.updateConfigMap(k.configMapConfigurationsName, k.namespace, configMapConfiguration.Data); err != nil {
 					return err
 				}
@@ -120,6 +150,9 @@ func (k *K8sManager) handlerRegister() error {
 					}
 					if len(response.AccessToken) > 0 {
 						configMapConfiguration.Data["access_token"] = response.AccessToken
+					}
+					if len(metadata.ClusterName) > 0 {
+						configMapConfiguration.Data["cluster_name"] = metadata.ClusterName
 					}
 					if err := k.updateConfigMap(k.configMapConfigurationsName, k.namespace, configMapConfiguration.Data); err != nil {
 						return err

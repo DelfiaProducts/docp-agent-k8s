@@ -41,6 +41,7 @@ func (k *K8sManager) initializeConfigMaps() error {
 		"version":             os.Getenv("VERSION"),
 		"api_key":             os.Getenv("ORYA_API_KEY"),
 		"tags":                os.Getenv("TAGS"),
+		"cluster_name":        "",
 	}
 	if err := k.createConfigMap(k.configMapConfigurationsName, k.namespace, dataConfigurations); err != nil {
 		return err
