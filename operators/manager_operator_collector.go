@@ -320,8 +320,9 @@ func (m *ManagerOperator) getDatadogClusterName() (string, error) {
 }
 
 // GetClusterName return cluster name using a cascade strategy:
-//  1. CLUSTER_NAME env var (admin override)
-//  2. Datadog agent cluster name (if installed — ensures consistency)
+//  1. Datadog agent cluster name (if installed — authoritative, pois é o
+//     cluster name que está efetivamente rodando no Datadog)
+//  2. CLUSTER_NAME env var (admin hint, usado quando Datadog não está rodando)
 //  3. Provider-specific detection (node labels, API hostname, cloud metadata)
 //  4. KUBERNETES_SERVICE_HOST (fallback)
 func (m *ManagerOperator) GetClusterName() (string, error) {
@@ -330,14 +331,16 @@ func (m *ManagerOperator) GetClusterName() (string, error) {
 		return m.getClusterNameFromKubeconfig()
 	}
 
-	if name := os.Getenv("CLUSTER_NAME"); len(name) > 0 {
+	// Datadog já instalado tem prioridade: o cluster name que está rodando
+	// no Datadog é a fonte da verdade, independente do valor em values.yaml.
+	name, err := m.getDatadogClusterName()
+	if err == nil && len(name) > 0 {
 		return name, nil
 	}
 
-	// If Datadog is already installed, prefer its cluster name for consistency.
-	// The Orya agent itself injects this name during install, so it's authoritative.
-	name, err := m.getDatadogClusterName()
-	if err == nil && len(name) > 0 {
+	// CLUSTER_NAME env var serve como fallback para quando Datadog ainda
+	// não está instalado ou não foi possível determinar o nome.
+	if name := os.Getenv("CLUSTER_NAME"); len(name) > 0 {
 		return name, nil
 	}
 
