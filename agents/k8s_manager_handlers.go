@@ -110,6 +110,16 @@ func (k *K8sManager) handlerRegister() error {
 				if err := k.updateConfigMap(k.configMapConfigurationsName, k.namespace, configMapConfiguration.Data); err != nil {
 					return err
 				}
+			case 204:
+				// compute já existe na base — marca como registered e salva
+				// cluster_name sem tentar decodificar JWT (204 não tem body)
+				configMapConfiguration.Data["registered"] = "true"
+				if len(metadata.ClusterName) > 0 {
+					configMapConfiguration.Data["cluster_name"] = metadata.ClusterName
+				}
+				if err := k.updateConfigMap(k.configMapConfigurationsName, k.namespace, configMapConfiguration.Data); err != nil {
+					return err
+				}
 			case 400:
 				isRateLimit, err := k.operator.ValidateRateLimitInstallAgentError(resp)
 				if err != nil {
@@ -151,6 +161,14 @@ func (k *K8sManager) handlerRegister() error {
 					if len(response.AccessToken) > 0 {
 						configMapConfiguration.Data["access_token"] = response.AccessToken
 					}
+					if len(metadata.ClusterName) > 0 {
+						configMapConfiguration.Data["cluster_name"] = metadata.ClusterName
+					}
+					if err := k.updateConfigMap(k.configMapConfigurationsName, k.namespace, configMapConfiguration.Data); err != nil {
+						return err
+					}
+				case 204:
+					// update sem mudanças — salva cluster_name localmente
 					if len(metadata.ClusterName) > 0 {
 						configMapConfiguration.Data["cluster_name"] = metadata.ClusterName
 					}
